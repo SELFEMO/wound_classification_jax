@@ -3,3 +3,4 @@ typing
 equinox
 optax
 flax
+pillow

@@ -5,7 +5,6 @@ sys.path.append('..')
 import os
 import shutil
 import PIL
-from PIL import Image
 from typing import Optional
 
 
@@ -31,7 +30,7 @@ def inspect_data(
                 continue
             fpath = os.path.join(label_path, fname)  # Full file path  # 完整文件路径
             try:
-                with Image.open(fpath) as img:
+                with PIL.Image.open(fpath) as img:
                     w, h = img.size  # Get image dimensions  # 获取图像尺寸
             except Exception as e:
                 print(f"[Error] Could not open image {fpath}: {e}")
