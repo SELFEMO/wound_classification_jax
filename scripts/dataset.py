@@ -129,7 +129,7 @@ class data_loader:
             self,
             data_path: Optional[str] = None,
             image_size: Optional[tuple] = (224, 224),
-            train_split_ratio: Optional[float] = 0.8,
+            train_split_ratio: Optional[float] = 0.9,
             use_augmentation: Optional[bool] = False,
     ):
         """
@@ -142,7 +142,7 @@ class data_loader:
             data_path = os.path.join('../data/dataset')
         self.data_path = data_path
         self.image_size = image_size if image_size is not None else (224, 224)
-        self.train_split_ratio = train_split_ratio
+        self.train_split_ratio = train_split_ratio if train_split_ratio is not None else 0.9
         self.dataset_train, self.dataset_test, self.unique_labels = load_dataset(
             data_path=self.data_path,
             image_size=self.image_size,
@@ -151,6 +151,8 @@ class data_loader:
         self.num_classes = len(self.unique_labels)
         self.use_augmentation = use_augmentation
         self.is_last = False
+        self.is_training = True
+        self.augmentation = apply_augmentation
 
     def __getitem__(
             self,
@@ -164,11 +166,13 @@ class data_loader:
         :return: A tuple of (image, label_index, image_index) if successful, otherwise None.  如果成功，则返回 (image, label_index, image_index) 元组，否则返回 None。
         """
         # Check index bounds  检查索引范围
-        if index < 0 or index >= len(self.dataset_train):
+        if self.is_training and (index < 0 or index >= len(self.dataset_train)):
+            return None
+        elif not self.is_training and (index < 0 or index >= len(self.dataset_test)):
             return None
 
         # Retrieve data entry  检索数据条目
-        data = self.dataset_train[index]
+        data = self.dataset_train[index] if self.is_training else self.dataset_test[index]
 
         # Load and preprocess image  加载和预处理图像
         try:
@@ -196,6 +200,47 @@ class data_loader:
         """
         return {'train': len(self.dataset_train), 'test': len(self.dataset_test)}
 
+    def get_train_dateset(
+            self,
+    ) -> list:
+        """
+        Returns the training dataset.  返回训练数据集。
+
+        :return: The training dataset as a list.  训练数据集作为列表。
+        """
+        return self.dataset_train
+
+    def get_test_dateset(
+            self,
+    ) -> list:
+        """
+        Returns the testing dataset.  返回测试数据集。
+
+        :return: The testing dataset as a list.  测试数据集作为列表。
+        """
+        return self.dataset_test
+
+    def set_training(
+            self,
+            is_training: bool,
+    ) -> None:
+        """
+        Sets whether the data loader is in training mode.  设置数据加载器是否处于训练模式。
+
+        :param is_training: True if in training mode, otherwise False.  如果处于训练模式，则为 True，否则为 False。
+        """
+        self.is_training = is_training
+
+    def get_is_training(
+            self,
+    ) -> bool:
+        """
+        Returns whether the data loader is in training mode.  返回数据加载器是否处于训练模式。
+
+        :return: True if in training mode, otherwise False.  如果处于训练模式，则为 True，否则为 False。
+        """
+        return self.is_training
+
     def set_last(
             self,
             is_last: bool,
@@ -203,7 +248,7 @@ class data_loader:
         """
         Sets whether the current batch is the last batch.  设置当前批次是否为最后一个批次。
 
-        :param isLast: True if the current batch is the last batch, otherwise False.  如果当前批次是最后一个批次，则为 True，否则为 False。
+        :param is_last: True if the current batch is the last batch, otherwise False.  如果当前批次是最后一个批次，则为 True，否则为 False。
         """
         self.is_last = is_last
 
