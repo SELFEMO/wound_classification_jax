@@ -1,6 +1,7 @@
 import jax
 import flax
 
+
 class basic_block(flax.linen.Module):
     """
     A basic block for ResNet18/34 .  ResNet18/34 的基本模块。
@@ -11,7 +12,6 @@ class basic_block(flax.linen.Module):
     out_channels: int
     strides: tuple = (1, 1)
     use_projection: bool = False
-
 
     @flax.linen.compact
     def __call__(
@@ -90,7 +90,6 @@ class ResNet18(flax.linen.Module):
     """
     num_classes: int = 2  # Number of output classes  输出类别数
 
-
     @flax.linen.compact
     def __call__(
             self,
@@ -128,7 +127,7 @@ class ResNet18(flax.linen.Module):
 
         # Residual blocks configuration  残差块配置
         block_configs = [
-            (64, 2, False),   # (out_channels, num_blocks, use_projection)  （输出通道数，块数，使用投影）
+            (64, 2, False),  # (out_channels, num_blocks, use_projection)  （输出通道数，块数，使用投影）
             (128, 2, True),
             (256, 2, True),
             (512, 2, True),
@@ -153,6 +152,80 @@ class ResNet18(flax.linen.Module):
 
         return y  # Output tensor  输出张量
 
+
+class ResNet34(flax.linen.Module):
+    """
+    ResNet34 model.  ResNet34 模型。
+
+    Conv(out_channels, stride) -> BatchNorm -> ReLU ->MaxPool(3x3, 2) ->
+    [basic_block * 3, 4, 6, 3] ->
+    GlobalAvgPool -> FullyConnected(num_classes)
+    """
+    num_classes: int = 2  # Number of output classes  输出类别数
+
+    @flax.linen.compact
+    def __call__(
+            self,
+            x: jax.numpy.ndarray,
+            train: bool = True
+    ) -> jax.numpy.ndarray:
+        """
+        Forward pass of the ResNet34 model.
+
+        :param x: Input tensor  输入张量
+        :param train:  Whether the model is in training mode  模型是否处于训练模式
+
+        :return: Output tensor after passing through the ResNet34 model  通过 ResNet34 模型后的输出张量
+        """
+        # Initial convolutional layer  初始卷积层
+        x = flax.linen.Conv(
+            features=64,
+            kernel_size=(7, 7),
+            strides=(2, 2),
+            padding='SAME',
+            use_bias=False,
+        )(x)
+        x = flax.linen.BatchNorm(
+            use_running_average=not train,
+            momentum=0.9,
+            epsilon=1e-5,
+        )(x)
+        x = flax.linen.relu(x)
+        x = flax.linen.max_pool(
+            x,
+            window_shape=(3, 3),
+            strides=(2, 2),
+            padding='SAME',
+        )
+
+        # Residual blocks configuration  残差块配置
+        block_configs = [
+            (64, 3, False),  # (out_channels, num_blocks, use_projection)  （输出通道数，块数，使用投影）
+            (128, 4, True),
+            (256, 6, True),
+            (512, 3, True),
+        ]
+
+        # Build residual blocks  构建残差块
+        for out_channels, num_blocks, use_projection in block_configs:
+            for i in range(num_blocks):
+                x = basic_block(
+                    out_channels=out_channels,  # Number of output channels  输出通道数
+                    strides=(2, 2) if i == 0 and use_projection else (1, 1),  # Stride for the first block if projection is used  如果使用投影，则为第一个块的步幅
+                    use_projection=(i == 0 and use_projection),  # Use projection for the first
+                )(x, train=train)
+
+        # Global average pooling  全局平均池化
+        x = jax.numpy.mean(x, axis=(1, 2))
+
+        # Fully connected layer  全连接层
+        y = flax.linen.Dense(
+            features=self.num_classes
+        )(x)
+
+        return y  # Output tensor  输出张量
+
+
 # ===== Test Code =====
 if __name__ == "__main__":
     # Input parameters  输入参数
@@ -174,3 +247,11 @@ if __name__ == "__main__":
     logits = model.apply(params, x, train=False)
 
     print("ResNet18 logits shape:", logits.shape)  # Predicted logits shape: (4, 5)  预测的 logits 形状：(4, 5)
+
+    # Build model  构建模型
+    model = ResNet34(num_classes=num_classes)
+    # Initialize parameters  初始化参数
+    params = model.init(key, x)
+    # Forward pass  前向传播
+    logits = model.apply(params, x, train=False)
+    print("ResNet34 logits shape:", logits.shape)  # Predicted logits shape: (4, 5)  预测的 logits 形状：(4, 5)
