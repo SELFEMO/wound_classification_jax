@@ -228,6 +228,10 @@ class ResNet34(flax.linen.Module):
 
 # ===== Test Code =====
 if __name__ == "__main__":
+    # Select device  选择设备
+    device = jax.devices()[0]
+    print(f"Using device: {device}")
+
     # Input parameters  输入参数
     key = jax.random.PRNGKey(0)
     batch_size = 4
