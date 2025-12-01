@@ -110,7 +110,6 @@ def apply_augmentation(
     angle = numpy.random.uniform(-15, 15)  # Random rotation angle between -15 and 15 degrees  -15 到 15 度之间的随机旋转角度
     image = image.rotate(angle)
 
-    image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]
     return image
 
 class data_loader:
@@ -182,6 +181,8 @@ class data_loader:
 
         if self.use_augmentation and not self.is_last:
             image = apply_augmentation(image)
+
+        image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]
 
         return image, data['label_index'], data['index']
 
