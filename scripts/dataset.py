@@ -33,7 +33,7 @@ def load_dataset(
         data_path: Optional[str] = None,
         image_size: Optional[tuple] = (224, 224),
         train_split_ratio: Optional[float] = 1.0,
-) -> Optional[tuple[list, list, set]]:
+) -> Optional[tuple]:
     """
     Loads and preprocesses the dataset from the given path.  从给定路径加载和预处理数据集。
 
@@ -96,7 +96,7 @@ def load_dataset(
 
 def apply_augmentation(
         image: PIL.Image.Image,
-) -> numpy.ndarray:
+) -> PIL.Image.Image:
     """
     Applies simple augmentation techniques to the given image.  对给定图像应用简单的增强技术。
 
@@ -188,13 +188,13 @@ class data_loader:
 
     def __len__(
             self,
-    ) -> tuple[int, int]:
+    ) -> dict:
         """
         Returns the length of the training dataset.  返回训练数据集的长度。
 
-        :return: The number of items in the training dataset.  训练数据集中的项目数。
+        :return: A dictionary with lengths of training and testing datasets.  包含训练和测试数据集长度的字典。
         """
-        return len(self.dataset_train), len(self.dataset_test)
+        return {'train': len(self.dataset_train), 'test': len(self.dataset_test)}
 
     def set_last(
             self,
