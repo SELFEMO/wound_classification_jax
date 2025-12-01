@@ -4,3 +4,4 @@ equinox
 optax
 flax
 pillow
+orbax-checkpoint

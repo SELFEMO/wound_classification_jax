@@ -10,6 +10,7 @@ from typing import Optional, List
 import numpy
 import PIL
 
+
 def fname_to_index_and_label(
         fname: str
 ) -> Optional[tuple]:
@@ -28,6 +29,7 @@ def fname_to_index_and_label(
         return index, label
     except Exception:
         return None
+
 
 def load_dataset(
         data_path: Optional[str] = None,
@@ -112,6 +114,7 @@ def apply_augmentation(
 
     return image
 
+
 class data_loader:
     """
     Data loader class for loading and preprocessing images from a dataset.  用于从数据集中加载和预处理图像的数据加载器类。
@@ -192,13 +195,13 @@ class data_loader:
 
     def __len__(
             self,
-    ) -> dict:
+    ) -> tuple[int, int]:
         """
         Returns the length of the training dataset.  返回训练数据集的长度。
 
-        :return: A dictionary with lengths of training and testing datasets.  包含训练和测试数据集长度的字典。
+        :return: A tuple of (train_length, test_length).  (train_length, test_length) 元组。
         """
-        return {'train': len(self.dataset_train), 'test': len(self.dataset_test)}
+        return len(self.dataset_train), len(self.dataset_test)
 
     def get_train_dateset(
             self,
@@ -317,5 +320,3 @@ if __name__ == "__main__":
             print(f"Sample index: {sample_index}, Image index: {image_index}, Label index: {label_index}, Image shape: {image.shape}")
         else:
             print(f"Could not retrieve sample at index {sample_index}")
-
-
