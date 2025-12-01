@@ -176,7 +176,6 @@ class data_loader:
             with PIL.Image.open(data['path']) as image:
                 image = image.convert('RGB')  # Ensure image is in RGB format  确保图像为 RGB 格式
                 image = image.resize(self.image_size, PIL.Image.Resampling.LANCZOS)  # Resize image  调整图像大小
-                image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]
         except Exception as e:
             print(f"[Error] Could not load image {data['path']}: {e}")
             return None
@@ -264,12 +263,13 @@ if __name__ == "__main__":
     print(f"Training and validation dataset sizes: {loader.__len__()}")
 
     # Retrieve and print a sample data item  检索并打印一个样本数据项
-    sample_index = 0
-    sample = loader.__getitem__(sample_index)
-    if sample is not None:
-        image, label_index, image_index = sample
-        print(f"Sample index: {sample_index}, Image index: {image_index}, Label index: {label_index}, Image shape: {image.shape}")
-    else:
-        print(f"Could not retrieve sample at index {sample_index}")
+    # sample_index = 0
+    for sample_index in range(5):
+        sample = loader.__getitem__(sample_index)
+        if sample is not None:
+            image, label_index, image_index = sample
+            print(f"Sample index: {sample_index}, Image index: {image_index}, Label index: {label_index}, Image shape: {image.shape}")
+        else:
+            print(f"Could not retrieve sample at index {sample_index}")
 
 
