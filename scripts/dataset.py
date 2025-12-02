@@ -1,5 +1,6 @@
 import sys
 
+from lxml.objectify import is_special_method
 from parso.python.tree import Class
 
 sys.path.append('..')
@@ -106,11 +107,56 @@ def apply_augmentation(
 
     :return: The augmented image as a numpy array.  增强后的图像作为 numpy 数组。
     """
-    # Example augmentations: horizontal flip and random rotation  示例增强：水平翻转和随机旋转
-    if numpy.random.rand() > 0.5:
+    # Store original size  存储原始大小
+    w, h = image.size
+
+    is_special_method = False
+
+    # Horizontal flip  水平翻转
+    if numpy.random.rand() > 0.3:
         image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)  # Horizontal flip  水平翻转
-    angle = numpy.random.uniform(-15, 15)  # Random rotation angle between -15 and 15 degrees  -15 到 15 度之间的随机旋转角度
-    image = image.rotate(angle)
+
+    # Vertical flip 垂直翻转
+    if numpy.random.rand() > 0.4:
+        image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)  # Vertical flip  垂直翻转
+
+    # Random rotation  随机旋转
+    if numpy.random.rand() > 0.7 and not is_special_method:
+        angle = numpy.random.uniform(-360, 360)
+        image = image.rotate(angle)
+        is_special_method = True
+
+    # Random brightness adjustment  随机亮度调整
+    if numpy.random.random() > 0.5:
+        enhancer = PIL.ImageEnhance.Brightness(image)
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+    if numpy.random.random() > 0.5:
+        enhancer = PIL.ImageEnhance.Contrast(image)
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+
+    # Random zoom  随机缩放
+    if numpy.random.rand() > 0.7 and not is_special_method:
+        zoom_factor = numpy.random.uniform(1.0, 1.2)
+        new_w, new_h = int(w * zoom_factor), int(h * zoom_factor)
+        image = image.resize((new_w, new_h), PIL.Image.Resampling.LANCZOS)
+        left = (new_w - w) // 2
+        top = (new_h - h) // 2
+        image = image.crop((left, top, left + w, top + h))
+        image = image.resize((w, h), PIL.Image.Resampling.LANCZOS)  # Resize back to original size  调整回原始大小
+        is_special_method = True
+
+    # Random color jitter  随机颜色抖动
+    if numpy.random.random() > 0.8:
+        enhancer = PIL.ImageEnhance.Color(image)
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+
+    # Gaussian noise  高斯噪声
+    if numpy.random.random() > 0.9:
+        image = image.filter(
+            PIL.Image.Filter.GaussianBlur(
+                radius=numpy.random.uniform(0.5, 1.5)
+            )
+        )
 
     return image
 
