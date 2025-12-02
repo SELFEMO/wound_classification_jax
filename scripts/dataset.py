@@ -114,13 +114,14 @@ def apply_augmentation(
     if numpy.random.rand() > 0.3:
         image = image.transpose(Image.FLIP_LEFT_RIGHT)  # Horizontal flip  水平翻转
 
-    # Vertical flip 垂直翻转
-    if numpy.random.rand() > 0.4:
-        image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Vertical flip  垂直翻转
+    # # Vertical flip 垂直翻转
+    # if numpy.random.rand() > 0.4:
+    #     image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Vertical flip  垂直翻转
 
     # Random rotation  随机旋转
     if numpy.random.rand() > 0.7 and not is_special_augmentation:
-        angle = numpy.random.uniform(-360, 360)
+        # angle = numpy.random.uniform(-360, 360)
+        angle = numpy.random.uniform(-15, 15)
         image = image.rotate(angle)
         is_special_augmentation = True
 
