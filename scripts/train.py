@@ -346,11 +346,12 @@ if __name__ == "__main__":
                         default=os.path.join("..", "data", "dataset"))
     parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224])
     parser.add_argument("--train_split_ratio", type=float, default=0.8)
+    parser.add_argument("--use_augmentation", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_epochs", type=int, default=50)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
-    parser.add_argument("--save_every", type=int, default=5)
+    parser.add_argument("--save_every", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--mamba_patch_size", type=int, default=16)
@@ -385,7 +386,7 @@ if __name__ == "__main__":
         data_path=args.data_path,
         image_size=image_size,
         train_split_ratio=args.train_split_ratio,
-        use_augmentation=True,
+        use_augmentation=args.use_augmentation,
     )
 
     num_classes = loader.get_num_classes()
@@ -432,11 +433,17 @@ if __name__ == "__main__":
         epoch_start = time.time()
 
         # 训练
+        loader.set_last(
+            is_last=False if epoch < args.num_epochs else True  # 最后一个 epoch 设置为最后一次迭代
+        )
         state, train_loss, n_train_batches = train_one_epoch(
             state, loader, args.batch_size, train_step_fn
         )
 
         # 验证
+        loader.set_last(
+            is_last=True  # 验证时总是最后一次迭代
+        )
         val_loss, val_acc, n_val_samples = validate(
             state, loader, args.batch_size, eval_step_fn
         )
@@ -465,7 +472,7 @@ if __name__ == "__main__":
             print(f"  ✓ Best model saved (acc={best_val_acc:.4f})")
 
         # 定期保存
-        if epoch % args.save_every == 0:
+        if args.save_every != 0 and epoch % args.save_every == 0:
             ckpt = {
                 'params': state.params,
                 'batch_stats': state.batch_stats,
