@@ -108,7 +108,8 @@ def apply_augmentation(
     # Store original size  存储原始大小
     w, h = image.size
 
-    is_special_augmentation = False
+    # is_special_augmentation = False
+    is_special_augmentation = numpy.random.choice([True, False])
 
     # Horizontal flip  水平翻转
     if numpy.random.rand() > 0.3:
@@ -121,21 +122,23 @@ def apply_augmentation(
     # Random rotation  随机旋转
     if numpy.random.rand() > 0.7 and not is_special_augmentation:
         # angle = numpy.random.uniform(-360, 360)
-        angle = numpy.random.uniform(-15, 15)
+        angle = numpy.random.uniform(-10, 10)
         image = image.rotate(angle)
         is_special_augmentation = True
 
     # Random brightness adjustment  随机亮度调整
     if numpy.random.random() > 0.5:
         enhancer = ImageEnhance.Brightness(image)
-        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
+
+    # Random contrast adjustment  随机对比度调整
     if numpy.random.random() > 0.5:
         enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
 
     # Random zoom  随机缩放
     if numpy.random.rand() > 0.7 and not is_special_augmentation:
-        zoom_factor = numpy.random.uniform(1.0, 1.2)
+        zoom_factor = numpy.random.uniform(0.9, 1.1)
         new_w, new_h = int(w * zoom_factor), int(h * zoom_factor)
         image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
         left = (new_w - w) // 2
@@ -147,10 +150,10 @@ def apply_augmentation(
     # Random color jitter  随机颜色抖动
     if numpy.random.random() > 0.8:
         enhancer = ImageEnhance.Color(image)
-        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
 
     # Gaussian noise  高斯噪声
-    if numpy.random.random() > 0.9:
+    if numpy.random.random() > 0.9 and not is_special_augmentation:
         image = image.filter(
             ImageFilter.GaussianBlur(
                 radius=numpy.random.uniform(0.5, 1.5)
