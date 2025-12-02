@@ -166,7 +166,6 @@ def create_model(
                 'patch_size': 16,
                 'embed_dim': 512,
                 'use_class_token': False,
-                'dropout_rate': 0.1,
                 'depth': 8,
                 'conv_kernel_size': 3,
             }
@@ -176,7 +175,6 @@ def create_model(
             patch_size=mamba_config["patch_size"],
             embed_dim=mamba_config["embed_dim"],
             use_class_token=mamba_config["use_class_token"],
-            dropout_rate=mamba_config["dropout_rate"],
             depth=mamba_config["depth"],
             conv_kernel_size=mamba_config["conv_kernel_size"],
         )
@@ -206,12 +204,7 @@ def create_train_state(
     dummy_batch = jnp.zeros((1, H, W, 3), dtype=jnp.float32)
 
     # 初始化参数
-    if model_name == "mamba":
-        B, H, W, C = dummy_batch.shape
-        dummy_seq = dummy_batch.reshape(B, H * W, C)
-        variables = model.init(rng, dummy_seq, train=True)
-    else:
-        variables = model.init(rng, dummy_batch, train=True)
+    variables = model.init(rng, dummy_batch, train=True)
 
     # 分离 params 和 batch_stats
     params = variables.get('params', variables)
@@ -239,12 +232,7 @@ def create_train_and_eval_functions(model: nn.Module, model_name: str):
     """创建训练和验证函数"""
 
     def forward_pass(params, batch_stats, batch_images, train: bool, mutable: bool = False):
-        if model_name == "mamba":
-            B, H, W, C = batch_images.shape
-            seq = batch_images.reshape(B, H * W, C)
-            input_data = seq
-        else:
-            input_data = batch_images
+        input_data = batch_images
 
         variables = {'params': params, 'batch_stats': batch_stats}
 
@@ -368,7 +356,6 @@ def main():
     parser.add_argument("--mamba_patch_size", type=int, default=16)
     parser.add_argument("--mamba_embed_dim", type=int, default=512)
     parser.add_argument("--mamba_use_class_token", type=bool, default=False)
-    parser.add_argument("--mamba_dropout_rate", type=float, default=0.1)
     parser.add_argument("--mamba_depth", type=int, default=8)
     parser.add_argument("--mamba_conv_kernel_size", type=int, default=3)
 
@@ -418,7 +405,6 @@ def main():
             'patch_size': args.mamba_patch_size,
             'embed_dim': args.mamba_embed_dim,
             'use_class_token': args.mamba_use_class_token,
-            'dropout_rate': args.mamba_dropout_rate,
             'depth': args.mamba_depth,
             'conv_kernel_size': args.mamba_conv_kernel_size,
         }
