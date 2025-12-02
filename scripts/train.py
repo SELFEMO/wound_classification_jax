@@ -346,7 +346,7 @@ if __name__ == "__main__":
                         default=os.path.join("..", "data", "dataset"))
     parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224])
     parser.add_argument("--train_split_ratio", type=float, default=0.8)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_epochs", type=int, default=50)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
@@ -355,8 +355,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--mamba_patch_size", type=int, default=16)
     parser.add_argument("--mamba_embed_dim", type=int, default=512)
-    parser.add_argument("--mamba_use_class_token", type=bool, default=False)
-    parser.add_argument("--mamba_depth", type=int, default=8)
+    parser.add_argument("--mamba_use_class_token", type=bool, default=True)
+    parser.add_argument("--mamba_depth", type=int, default=16)
     parser.add_argument("--mamba_conv_kernel_size", type=int, default=3)
 
     args = parser.parse_args()

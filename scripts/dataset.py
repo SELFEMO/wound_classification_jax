@@ -1,8 +1,5 @@
 import sys
 
-from lxml.objectify import is_special_method
-from parso.python.tree import Class
-
 sys.path.append('..')
 
 import os
@@ -10,6 +7,7 @@ from typing import Optional, List
 
 import numpy
 import PIL
+from PIL import Image, ImageEnhance, ImageFilter
 
 
 def fname_to_index_and_label(
@@ -98,8 +96,8 @@ def load_dataset(
 
 
 def apply_augmentation(
-        image: PIL.Image.Image,
-) -> PIL.Image.Image:
+        image: Image.Image,
+) -> Image.Image:
     """
     Applies simple augmentation techniques to the given image.  对给定图像应用简单的增强技术。
 
@@ -110,50 +108,50 @@ def apply_augmentation(
     # Store original size  存储原始大小
     w, h = image.size
 
-    is_special_method = False
+    is_special_augmentation = False
 
     # Horizontal flip  水平翻转
     if numpy.random.rand() > 0.3:
-        image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)  # Horizontal flip  水平翻转
+        image = image.transpose(Image.FLIP_LEFT_RIGHT)  # Horizontal flip  水平翻转
 
     # Vertical flip 垂直翻转
     if numpy.random.rand() > 0.4:
-        image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)  # Vertical flip  垂直翻转
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Vertical flip  垂直翻转
 
     # Random rotation  随机旋转
-    if numpy.random.rand() > 0.7 and not is_special_method:
+    if numpy.random.rand() > 0.7 and not is_special_augmentation:
         angle = numpy.random.uniform(-360, 360)
         image = image.rotate(angle)
-        is_special_method = True
+        is_special_augmentation = True
 
     # Random brightness adjustment  随机亮度调整
     if numpy.random.random() > 0.5:
-        enhancer = PIL.ImageEnhance.Brightness(image)
+        enhancer = ImageEnhance.Brightness(image)
         image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
     if numpy.random.random() > 0.5:
-        enhancer = PIL.ImageEnhance.Contrast(image)
+        enhancer = ImageEnhance.Contrast(image)
         image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
 
     # Random zoom  随机缩放
-    if numpy.random.rand() > 0.7 and not is_special_method:
+    if numpy.random.rand() > 0.7 and not is_special_augmentation:
         zoom_factor = numpy.random.uniform(1.0, 1.2)
         new_w, new_h = int(w * zoom_factor), int(h * zoom_factor)
-        image = image.resize((new_w, new_h), PIL.Image.Resampling.LANCZOS)
+        image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
         left = (new_w - w) // 2
         top = (new_h - h) // 2
         image = image.crop((left, top, left + w, top + h))
-        image = image.resize((w, h), PIL.Image.Resampling.LANCZOS)  # Resize back to original size  调整回原始大小
-        is_special_method = True
+        image = image.resize((w, h), Image.Resampling.LANCZOS)  # Resize back to original size  调整回原始大小
+        is_special_augmentation = True
 
     # Random color jitter  随机颜色抖动
     if numpy.random.random() > 0.8:
-        enhancer = PIL.ImageEnhance.Color(image)
+        enhancer = ImageEnhance.Color(image)
         image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
 
     # Gaussian noise  高斯噪声
     if numpy.random.random() > 0.9:
         image = image.filter(
-            PIL.Image.Filter.GaussianBlur(
+            ImageFilter.GaussianBlur(
                 radius=numpy.random.uniform(0.5, 1.5)
             )
         )
@@ -225,9 +223,9 @@ class data_loader:
 
         # Load and preprocess image  加载和预处理图像
         try:
-            with PIL.Image.open(data['path']) as image:
+            with Image.open(data['path']) as image:
                 image = image.convert('RGB')  # Ensure image is in RGB format  确保图像为 RGB 格式
-                image = image.resize(self.image_size, PIL.Image.Resampling.LANCZOS)  # Resize image  调整图像大小
+                image = image.resize(self.image_size, Image.Resampling.LANCZOS)  # Resize image  调整图像大小
         except Exception as e:
             print(f"[Error] Could not load image {data['path']}: {e}")
             return None
