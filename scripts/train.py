@@ -25,10 +25,10 @@ from PIL import Image
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(ROOT_DIR))
 
-from scripts.dataset import data_loader  # noqa: E402
-from nets.CNN import SimpleCNN  # noqa: E402
-from nets.ResNet import ResNet34  # noqa: E402
-from nets.Mamba import MambaClassifier  # noqa: E402
+from scripts.dataset import data_loader
+from nets.CNN import SimpleCNN
+from nets.ResNet import ResNet18, ResNet34
+from nets.Mamba import MambaClassifier
 
 
 # ========================================
@@ -153,6 +153,9 @@ def create_model(
     """根据名称创建模型"""
     if model_name == "cnn":
         return SimpleCNN(num_classes=num_classes)
+
+    elif model_name == "resnet18":
+        return ResNet18(num_classes=num_classes)
 
     elif model_name == "resnet34":
         return ResNet34(num_classes=num_classes)
@@ -344,12 +347,12 @@ def validate(state, loader, batch_size, eval_step_fn):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="mamba",
-                        choices=["cnn", "resnet34", "mamba"])
+                        choices=["cnn", 'resnet18', "resnet34", "mamba"])
     parser.add_argument("--data_path", type=str,
                         default=os.path.join("..", "data", "dataset"))
     parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224])
     parser.add_argument("--train_split_ratio", type=float, default=0.8)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=50)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--mamba_d_state", type=int, default=64)
