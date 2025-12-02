@@ -28,7 +28,7 @@ sys.path.append(os.path.dirname(ROOT_DIR))
 from scripts.dataset import data_loader
 from nets.CNN import SimpleCNN
 from nets.ResNet import ResNet18, ResNet34
-from nets.Mamba import MambaClassifier
+from nets.Mamba import VisionMamba
 
 
 # ========================================
@@ -163,16 +163,22 @@ def create_model(
     elif model_name == "mamba":
         if mamba_config is None:
             mamba_config = {
-                "d_model": 3,
-                "d_state": 64,
-                "num_blocks": 2,
+                'patch_size': 16,
+                'embed_dim': 512,
+                'use_class_token': False,
+                'dropout_rate': 0.1,
+                'depth': 8,
+                'conv_kernel_size': 3,
             }
 
-        return MambaClassifier(
+        return VisionMamba(
             num_classes=num_classes,
-            d_model=mamba_config["d_model"],
-            d_state=mamba_config["d_state"],
-            num_blocks=mamba_config["num_blocks"],
+            patch_size=mamba_config["patch_size"],
+            embed_dim=mamba_config["embed_dim"],
+            use_class_token=mamba_config["use_class_token"],
+            dropout_rate=mamba_config["dropout_rate"],
+            depth=mamba_config["depth"],
+            conv_kernel_size=mamba_config["conv_kernel_size"],
         )
 
     else:
@@ -355,11 +361,16 @@ def main():
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=50)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
-    parser.add_argument("--mamba_d_state", type=int, default=64)
-    parser.add_argument("--mamba_num_blocks", type=int, default=2)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
     parser.add_argument("--save_every", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
+
+    parser.add_argument("--mamba_patch_size", type=int, default=16)
+    parser.add_argument("--mamba_embed_dim", type=int, default=512)
+    parser.add_argument("--mamba_use_class_token", type=bool, default=False)
+    parser.add_argument("--mamba_dropout_rate", type=float, default=0.1)
+    parser.add_argument("--mamba_depth", type=int, default=8)
+    parser.add_argument("--mamba_conv_kernel_size", type=int, default=3)
 
     args = parser.parse_args()
 
@@ -404,9 +415,12 @@ def main():
     mamba_config = None
     if args.model == "mamba":
         mamba_config = {
-            "d_model": 3,
-            "d_state": args.mamba_d_state,
-            "num_blocks": args.mamba_num_blocks,
+            'patch_size': args.mamba_patch_size,
+            'embed_dim': args.mamba_embed_dim,
+            'use_class_token': args.mamba_use_class_token,
+            'dropout_rate': args.mamba_dropout_rate,
+            'depth': args.mamba_depth,
+            'conv_kernel_size': args.mamba_conv_kernel_size,
         }
 
     model = create_model(args.model, num_classes, image_size, mamba_config)
