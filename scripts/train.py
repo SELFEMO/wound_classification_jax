@@ -217,7 +217,12 @@ def create_train_state(
     batch_stats = variables.get('batch_stats', {})
 
     # 创建优化器
-    tx = optax.adam(learning_rate)
+    # tx = optax.adam(
+    #     learning_rate=learning_rate
+    # )
+    tx = optax.adamw(
+        learning_rate=learning_rate,
+    )
 
     # 创建训练状态
     state = TrainState.create(
