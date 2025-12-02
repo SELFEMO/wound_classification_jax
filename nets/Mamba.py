@@ -56,21 +56,10 @@ class ConvBranch(flax.linen.Module):
 
         :return: Output tensor after passing through SSM Branch  通过 SSM 分支后的输出张量
         """
-        # Get input shape  获取输入形状
-        B, N, D = x.shape
-
-        # Convolutional operations  卷积操作
         x = flax.linen.Dense(
-            features=self.embed_dim,
+            features=self.embed_dim // 2,
             use_bias=False,
-        )(x)  # Reduce dimension  降低维度  # (B, N, D)
-        x = flax.linen.Conv(
-            features=D // 2,
-            kernel_size=(self.kernel_size, self.kernel_size),
-            padding='SAME',
-            feature_group_count=D // 2,  # Depthwise convolution  深度卷积
-            use_bias=False,
-        )(x)  # Depthwise convolution  深度卷积  # (B, N, D/2)
+        )(x)  # Reduce dimension  降低维度  # (B, N, D/2)
         x = flax.linen.silu(x)  # Activation  激活  # (B, N, D/2)
         return x  # Output of Conv Branch  卷积分支的输出  # (B, N, D/2)
 
@@ -84,6 +73,8 @@ class SSMBranch(flax.linen.Module):
     expend: int = 2  # Expend factor for SSM  SSM 的扩展因子
     d_state: int = 16  # State dimension for SSM  SSM 的状态维度
     dt_rank: int = 16  # Rank for time projection  时间投影的秩
+    dt_clip_max: float = 10.0  # Maximum clipping value for dt  dt 的最大剪辑值
+    exp_clip: float = 50.0  # Maximum clipping value for exponent argument  指数参数的最大剪辑值
 
     @flax.linen.compact
     def __call__(
@@ -123,27 +114,48 @@ class SSMBranch(flax.linen.Module):
             features=d_inner,
         )(dt)
         dt = flax.linen.softplus(dt)  # Ensure positivity  确保正值
+        # clip dt to avoid huge steps (important for numeric stability)  避免巨大步骤（对数值稳定性很重要）
+        dt = jax.numpy.clip(
+            dt,
+            a_min=1e-6,
+            a_max=self.dt_clip_max,
+        )  # (B, N, d_inner)
 
         # Define SSM parameters (shared per channel, does not change over time)  定义 SSM 参数（每个通道共享，随时间不变）
         # A, B, C, D_param all have shape (d_inner, d_state) or (d_inner, 1) -> (d_inner,)  A、B、C、D_param 全部具有形状 (d_inner, d_state) 或 (d_inner, 1) -> (d_inner，)
         A = self.param(
             "A",
-            lambda key, shape: -jax.numpy.ones(shape),  # 初始化为负，产生衰减
+            lambda key, shape: -0.1 *jax.numpy.ones(
+                shape,
+                dtype=jax.numpy.float32,
+            ),  # Negative initialization for stability  稳定性的负初始化
             (d_inner,),
         )
         B_param = self.param(
             "B",
-            flax.linen.initializers.ones,
+            # flax.linen.initializers.ones,
+            lambda key, shape: 0.01 * jax.numpy.ones(
+                shape,
+                dtype=jax.numpy.float32,
+            ),
             (d_inner,),
         )
         C_param = self.param(
             "C",
-            flax.linen.initializers.ones,
+            # flax.linen.initializers.ones,
+            lambda key, shape: 0.01 * jax.numpy.ones(
+                shape,
+                dtype=jax.numpy.float32,
+            ),
             (d_inner,),
         )
         D_param = self.param(
             "D",
-            flax.linen.initializers.zeros,
+            # flax.linen.initializers.ones,
+            lambda key, shape: 0.01 * jax.numpy.ones(
+                shape,
+                dtype=jax.numpy.float32,
+            ),
             (d_inner,),
         )
 
@@ -179,7 +191,14 @@ class SSMBranch(flax.linen.Module):
                 u_t, dt_t = inputs
 
                 # Decay factor: exp(A * dt)  衰减因子：exp(A * dt)
-                decay = jax.numpy.exp(A * dt_t)  # (B, d_inner)
+                # decay = jax.numpy.exp(A * dt_t)  # (B, d_inner)
+                exp_arg = A * dt_t  # (B, d_inner)
+                exp_arg = jax.numpy.clip(
+                    exp_arg,
+                    a_min=-self.exp_clip,
+                    a_max=self.exp_clip,
+                )  # Clip exponent argument for stability  为稳定性剪辑指数参数
+                decay = jax.numpy.exp(exp_arg)  # (B, d_inner)
                 # Update hidden state  更新隐藏状态
                 h_new = h * decay + B_param * u_t * dt_t  # (B, d_inner)
                 # Compute output  计算输出
@@ -293,17 +312,43 @@ class VisionMambaBlock(flax.linen.Module):
 
         # Combine branches  组合分支
         combined = jax.numpy.concatenate([conv_out, ssm_out], axis=-1)  # (B, N, D)
-
-        # # Linear projection to embed_dim  线性投影到 embed_dim
         combined = flax.linen.Dense(
             features=self.embed_dim,
             use_bias=False,
-        )(combined)
-        # # Residual connection  残差连接
+        )(combined)  # (B, N, D)
+
+        # Main Residual Connection  主残差连接
         x = x + combined
-        x = ResidualBlock(
-            features=self.embed_dim
-        )(x)
+
+        # # FFN with Residual  带残差的 FFN
+        # x_norm = flax.linen.LayerNorm()(x)
+        # f1 = flax.linen.Dense(
+        #     features=self.embed_dim * 4,
+        # )(x_norm)
+        # f2 = flax.linen.Dense(
+        #     features=self.embed_dim * 4,
+        # )(x_norm)
+        # f = flax.linen.silu(f1) * f2
+        # f = flax.linen.Dense(
+        #     features=self.embed_dim,
+        # )(f)
+        # x = x + f  # Final output with residual  带残差的最终输出
+
+        # SwiGlu FFN with Residual  带残差的 SwiGlu FFN
+        x_norm = flax.linen.LayerNorm()(x)
+        ff = flax.linen.Dense(
+            features=self.embed_dim * 2,
+        )(x_norm)
+        f1, f2 = jax.numpy.split(
+            ff,
+            2,
+            axis=-1
+        )  # Split into two parts  分成两部分
+        f = flax.linen.silu(f2) * f1  # SwiGlu activation  SwiGlu 激活
+        f = flax.linen.Dense(
+            features=self.embed_dim,
+        )(f)
+        x = x + f  # Final output with residual  带残差的最终
 
         return x  # Output of Vision Mamba Block  视觉 Mamba 块的输出
 
@@ -408,10 +453,13 @@ if __name__ == "__main__":
     model = VisionMamba(
         num_classes=num_classes,
         patch_size=16,
-        embed_dim=512,
+        embed_dim=256,
         use_class_token=False,
-        depth=8,
+        depth=4,
         conv_kernel_size=3,
+        ssm_expend=2,
+        ssm_d_state=8,
+        ssm_dt_rank=8,
     )
 
     # Initialize parameters  初始化参数

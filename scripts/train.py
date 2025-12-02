@@ -168,6 +168,9 @@ def create_model(
                 'use_class_token': False,
                 'depth': 8,
                 'conv_kernel_size': 3,
+                'ssm_expend': 2,
+                'ssm_d_state': 16,
+                'ssm_dt_rank': 16,
             }
 
         return VisionMamba(
@@ -177,6 +180,9 @@ def create_model(
             use_class_token=mamba_config["use_class_token"],
             depth=mamba_config["depth"],
             conv_kernel_size=mamba_config["conv_kernel_size"],
+            ssm_expend=mamba_config["ssm_expend"],
+            ssm_d_state=mamba_config["ssm_d_state"],
+            ssm_dt_rank=mamba_config["ssm_dt_rank"],
         )
 
     else:
@@ -270,6 +276,13 @@ def create_train_and_eval_functions(model: nn.Module, model_name: str):
             state.params, state.batch_stats, batch_images, batch_labels
         )
 
+        grads = jax.tree_util.tree_map(
+            lambda g: jax.numpy.clip(
+                g, -1.0, 1.0  # Clip gradients to the range [-1, 1]
+            ),
+            grads
+        )  # Gradient clipping  梯度裁剪
+
         state = state.apply_gradients(
             grads=grads,
             batch_stats=updates['batch_stats']
@@ -349,16 +362,19 @@ if __name__ == "__main__":
     parser.add_argument("--use_augmentation", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_epochs", type=int, default=50)
-    parser.add_argument("--learning_rate", type=float, default=1e-3)
+    parser.add_argument("--learning_rate", type=float, default=5e-5)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
     parser.add_argument("--save_every", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--mamba_patch_size", type=int, default=16)
-    parser.add_argument("--mamba_embed_dim", type=int, default=512)
+    parser.add_argument("--mamba_embed_dim", type=int, default=256)
     parser.add_argument("--mamba_use_class_token", type=bool, default=True)
-    parser.add_argument("--mamba_depth", type=int, default=16)
+    parser.add_argument("--mamba_depth", type=int, default=4)
     parser.add_argument("--mamba_conv_kernel_size", type=int, default=3)
+    parser.add_argument("--mamba_ssm_expend", type=int, default=2)
+    parser.add_argument("--mamba_ssm_d_state", type=int, default=8)
+    parser.add_argument("--mamba_ssm_dt_rank", type=int, default=8)
 
     args = parser.parse_args()
 
@@ -371,12 +387,12 @@ if __name__ == "__main__":
     os.makedirs(model_ckpt_dir, exist_ok=True)
 
     print("=" * 60)
-    print(f"Model       : {args.model}")
-    print(f"Data path   : {os.path.abspath(args.data_path)}")
-    print(f"Image size  : {image_size}")
-    print(f"Batch size  : {args.batch_size}")
-    print(f"Epochs      : {args.num_epochs}")
-    print(f"Learning rate: {args.learning_rate}")
+    print(f"Model         : {args.model}")
+    print(f"Data path     : {os.path.abspath(args.data_path)}")
+    print(f"Image size    : {image_size}")
+    print(f"Batch size    : {args.batch_size}")
+    print(f"Epochs        : {args.num_epochs}")
+    print(f"Learning rate :  {args.learning_rate}")
     print(f"Checkpoint dir: {os.path.abspath(model_ckpt_dir)}")
     print("=" * 60)
 
@@ -408,6 +424,9 @@ if __name__ == "__main__":
             'use_class_token': args.mamba_use_class_token,
             'depth': args.mamba_depth,
             'conv_kernel_size': args.mamba_conv_kernel_size,
+            'ssm_expend': args.mamba_ssm_expend,
+            'ssm_d_state': args.mamba_ssm_d_state,
+            'ssm_dt_rank': args.mamba_ssm_dt_rank,
         }
 
     model = create_model(args.model, num_classes, image_size, mamba_config)
@@ -489,6 +508,7 @@ if __name__ == "__main__":
         val_acc_list.append(val_acc)
 
     import matplotlib.pyplot as plt
+
     # 绘制训练曲线
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)

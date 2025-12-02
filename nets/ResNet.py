@@ -1,5 +1,6 @@
 import jax
 import flax
+from typing import Optional
 
 
 class basic_block(flax.linen.Module):

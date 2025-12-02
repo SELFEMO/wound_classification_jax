@@ -1,5 +1,6 @@
 import jax
 import flax
+from typing import Optional
 
 
 class SimpleCNN(flax.linen.Module):
@@ -86,6 +87,12 @@ class SimpleCNN(flax.linen.Module):
 
         # (B, H, W, C) -> (B, C)
         x = jax.numpy.mean(x, axis=(1, 2))  # Global Average Pooling  全局平均池化
+
+        # Hidden Dense layer  隐藏全连接层
+        x = flax.linen.Dense(
+            features=256,  # Number of hidden units  隐藏单元数
+        )(x)
+        x = flax.linen.relu(x)  # Activation function  激活函数
 
         # Output layer: Classification  输出层：分类
         y = flax.linen.Dense(
