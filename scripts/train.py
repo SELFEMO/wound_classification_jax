@@ -338,7 +338,7 @@ def validate(state, loader, batch_size, eval_step_fn):
 # 主函数
 # ========================================
 
-def main():
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="mamba",
                         choices=["cnn", 'resnet18', "resnet34", "mamba"])
@@ -478,7 +478,3 @@ def main():
     print("\n" + "=" * 60)
     print(f"Training done! Best acc: {best_val_acc:.4f} (epoch {best_epoch})")
     print("=" * 60)
-
-
-if __name__ == "__main__":
-    main()
