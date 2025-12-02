@@ -361,7 +361,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_split_ratio", type=float, default=0.8)
     parser.add_argument("--use_augmentation", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--num_epochs", type=int, default=50)
+    parser.add_argument("--num_epochs", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=5e-5)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
     parser.add_argument("--save_every", type=int, default=0)
