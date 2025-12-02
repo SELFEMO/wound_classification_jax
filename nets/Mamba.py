@@ -125,7 +125,7 @@ class SSMBranch(flax.linen.Module):
         # A, B, C, D_param all have shape (d_inner, d_state) or (d_inner, 1) -> (d_inner,)  A、B、C、D_param 全部具有形状 (d_inner, d_state) 或 (d_inner, 1) -> (d_inner，)
         A = self.param(
             "A",
-            lambda key, shape: -0.1 *jax.numpy.ones(
+            lambda key, shape: -0.1 * jax.numpy.ones(
                 shape,
                 dtype=jax.numpy.float32,
             ),  # Negative initialization for stability  稳定性的负初始化
