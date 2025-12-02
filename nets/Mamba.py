@@ -314,7 +314,6 @@ class VisionMamba(flax.linen.Module):
     patch_size: int = 16  # Size of each patch  每个补丁的大小
     embed_dim: int = 512  # Dimension of the embedding  嵌入的维度
     use_class_token: bool = False  # Whether to use class token  是否使用类别令牌
-    dropout_rate: Optional[float] = None  # Dropout rate after embeddings  嵌入后的 dropout 率
     depth: int = 8  # Number of Vision Mamba blocks  视觉 Mamba 块的数量
     conv_kernel_size: int = 3  # Kernel size for convolution in Conv Branch  卷积分支中卷积的核大小
     ssm_expend: int = 2  # Expend factor for SSM Branch  SSM 分支的扩展因子
@@ -363,13 +362,6 @@ class VisionMamba(flax.linen.Module):
             class_tokens = jax.numpy.tile(class_token, (B, 1, 1))  # (B, 1, D)
             x = jax.numpy.concatenate([class_tokens, x], axis=1)  # (B, N+1, D)  # Concatenate class token  连接类别令牌
 
-        # Dropout (optional) after embeddings  dropout（可选）在嵌入后
-        if self.dropout_rate is not None:
-            x = flax.linen.Dropout(
-                rate=self.dropout_rate,
-                deterministic=not train
-            )(x)
-
         # Stack Vision Mamba Blocks  堆叠视觉 Mamba 块
         for i in range(self.depth):
             x = VisionMambaBlock(
@@ -388,11 +380,6 @@ class VisionMamba(flax.linen.Module):
 
         # Classification head  分类头
         x = flax.linen.LayerNorm()(x)  # Layer normalization  层归一化
-        if self.dropout_rate is not None:
-            x = flax.linen.Dropout(
-                rate=self.dropout_rate,
-                deterministic=not train
-            )(x)  # Dropout before final layer  最终层前的 dropout
         logits = flax.linen.Dense(
             features=self.num_classes
         )(x)  # Final linear layer  最终线性层
@@ -421,7 +408,6 @@ if __name__ == "__main__":
         patch_size=16,
         embed_dim=512,
         use_class_token=False,
-        dropout_rate=0.1,
         depth=8,
         conv_kernel_size=3,
     )
