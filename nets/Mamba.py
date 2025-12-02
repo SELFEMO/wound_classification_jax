@@ -56,15 +56,19 @@ class ConvBranch(flax.linen.Module):
 
         :return: Output tensor after passing through SSM Branch  通过 SSM 分支后的输出张量
         """
+        # Get input shape  获取输入形状
+        B, N, D = x.shape
+
+        # Convolutional operations  卷积操作
         x = flax.linen.Dense(
-            features=self.embed_dim // 2,
+            features=self.embed_dim,
             use_bias=False,
-        )(x)  # Reduce dimension  降低维度  # (B, N, D/2)
+        )(x)  # Reduce dimension  降低维度  # (B, N, D)
         x = flax.linen.Conv(
-            features=self.embed_dim // 2,
+            features=D // 2,
             kernel_size=(self.kernel_size, self.kernel_size),
             padding='SAME',
-            feature_group_count=self.embed_dim // 2,
+            feature_group_count=D // 2,  # Depthwise convolution  深度卷积
             use_bias=False,
         )(x)  # Depthwise convolution  深度卷积  # (B, N, D/2)
         x = flax.linen.silu(x)  # Activation  激活  # (B, N, D/2)
@@ -232,9 +236,7 @@ class ResidualBlock(flax.linen.Module):
     @flax.linen.compact
     def __call__(self, x):
         residual = x
-        x = flax.linen.LayerNorm(
-
-        )(x)  # 归一化
+        x = flax.linen.LayerNorm()(x)  # 归一化
         x = flax.linen.Dense(
             self.features
         )(x)  # 线性变换
@@ -293,12 +295,12 @@ class VisionMambaBlock(flax.linen.Module):
         combined = jax.numpy.concatenate([conv_out, ssm_out], axis=-1)  # (B, N, D)
 
         # # Linear projection to embed_dim  线性投影到 embed_dim
-        # combined = flax.linen.Dense(
-        #     features=self.embed_dim,
-        #     use_bias=False,
-        # )(combined)
+        combined = flax.linen.Dense(
+            features=self.embed_dim,
+            use_bias=False,
+        )(combined)
         # # Residual connection  残差连接
-        # x = x + combined
+        x = x + combined
         x = ResidualBlock(
             features=self.embed_dim
         )(x)

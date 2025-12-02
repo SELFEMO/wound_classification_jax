@@ -429,6 +429,8 @@ if __name__ == "__main__":
     best_val_acc = 0.0
     best_epoch = 0
 
+    train_loss_list, val_loss_list, val_acc_list = [], [], []
+
     for epoch in tqdm(range(1, args.num_epochs + 1)):
         epoch_start = time.time()
 
@@ -481,6 +483,29 @@ if __name__ == "__main__":
 
             epoch_ckpt_path = os.path.join(model_ckpt_dir, f"epoch_{epoch}.pkl")
             save_checkpoint(epoch_ckpt_path, ckpt)
+
+        train_loss_list.append(train_loss)
+        val_loss_list.append(val_loss)
+        val_acc_list.append(val_acc)
+
+    import matplotlib.pyplot as plt
+    # 绘制训练曲线
+    plt.figure(figsize=(12, 4))
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, args.num_epochs + 1), train_loss_list, label='Train Loss')
+    plt.plot(range(1, args.num_epochs + 1), val_loss_list, label='Val Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, args.num_epochs + 1), val_acc_list, label='Val Accuracy', color='orange')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Validation Accuracy')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(model_ckpt_dir, 'training_curves.png'))
 
     print("\n" + "=" * 60)
     print(f"Training done! Best acc: {best_val_acc:.4f} (epoch {best_epoch})")
