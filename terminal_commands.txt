@@ -1,0 +1,14 @@
+cd scripts/
+
+python train.py --model cnn
+python test.py --model cnn
+
+python train.py --model mamba
+python test.py --model mamba
+
+python train.py --model resnet18
+python test.py --model resnet18
+
+# python train.py --model resnet34
+# python test.py --model resnet34
+

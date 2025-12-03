@@ -377,11 +377,11 @@ if __name__ == "__main__":
                         choices=["cnn", 'resnet18', "resnet34", "mamba"],
                         help="Model architecture to use")
     parser.add_argument("--data_path", type=str,
-                        default=os.path.join("..", "data", "dataset"),
+                        default=os.path.join("..", "data", "dataset_split", "train"),
                         help="Path to the dataset")
     parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224],
                         help="Input image size (height width)")
-    parser.add_argument("--train_split_ratio", type=float, default=0.8,
+    parser.add_argument("--train_split_ratio", type=float, default=0.9,
                         help="Train/validation split ratio")
     parser.add_argument("--use_augmentation", type=bool, default=True,
                         help="Whether to use data augmentation during training")

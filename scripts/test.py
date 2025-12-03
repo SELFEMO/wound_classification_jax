@@ -159,7 +159,7 @@ if __name__ == "__main__":
                         help="Path to the dataset")  # 数据集路径
     parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224],
                         help="Input image size (height width)")  # 输入图像大小（高 宽）
-    parser.add_argument("--batch_size", type=int, default=16,
+    parser.add_argument("--batch_size", type=int, default=1,
                         help="Batch size for evaluation")  # 评估时的批次大小
     parser.add_argument("--ckpt_path", type=str, default=None,
                         help="Specify the checkpoint path; if empty, use ../checkpoints/<model>/best.pkl")  # 指定 checkpoint 路径，如果为空则使用 ../checkpoints/<model>/best.pkl

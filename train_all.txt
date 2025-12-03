@@ -1,8 +1,0 @@
-python train.py --model cnn
-
-python train.py --model mamba
-
-python train.py --model resnet18
-
-python train.py --model resnet34
-
