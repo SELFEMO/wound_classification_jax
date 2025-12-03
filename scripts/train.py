@@ -374,28 +374,47 @@ def validate(state, loader, batch_size, eval_step_fn):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="mamba",
-                        choices=["cnn", 'resnet18', "resnet34", "mamba"])
+                        choices=["cnn", 'resnet18', "resnet34", "mamba"],
+                        help="Model architecture to use")
     parser.add_argument("--data_path", type=str,
-                        default=os.path.join("..", "data", "dataset"))
-    parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224])
-    parser.add_argument("--train_split_ratio", type=float, default=0.8)
-    parser.add_argument("--use_augmentation", type=bool, default=True)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--num_epochs", type=int, default=100)
-    parser.add_argument("--learning_rate", type=float, default=3e-4)
+                        default=os.path.join("..", "data", "dataset"),
+                        help="Path to the dataset")
+    parser.add_argument("--image_size", type=int, nargs=2, default=[224, 224],
+                        help="Input image size (height width)")
+    parser.add_argument("--train_split_ratio", type=float, default=0.8,
+                        help="Train/validation split ratio")
+    parser.add_argument("--use_augmentation", type=bool, default=True,
+                        help="Whether to use data augmentation during training")
+    parser.add_argument("--batch_size", type=int, default=16,
+                        help="Batch size for training and validation")
+    parser.add_argument("--num_epochs", type=int, default=100,
+                        help="Number of training epochs")
+    parser.add_argument("--learning_rate", type=float, default=3e-4,
+                        help="Learning rate for the optimizer")
     parser.add_argument("--ckpt_dir", type=str,
-                        default=os.path.join("..", "checkpoints"))
-    parser.add_argument("--save_every", type=int, default=0)
-    parser.add_argument("--seed", type=int, default=42)
+                        default=os.path.join("..", "checkpoints"),
+                        help="Directory to save checkpoints")
+    parser.add_argument("--save_every", type=int, default=0,
+                        help="Save checkpoint every N epochs (0 to disable)")
+    parser.add_argument("--seed", type=int, default=6,
+                        help="Random seed for reproducibility")
 
-    parser.add_argument("--mamba_patch_size", type=int, default=16)
-    parser.add_argument("--mamba_embed_dim", type=int, default=256)
-    parser.add_argument("--mamba_use_class_token", type=bool, default=True)
-    parser.add_argument("--mamba_depth", type=int, default=4)
-    parser.add_argument("--mamba_conv_kernel_size", type=int, default=3)
-    parser.add_argument("--mamba_ssm_expend", type=int, default=2)
-    parser.add_argument("--mamba_ssm_d_state", type=int, default=8)
-    parser.add_argument("--mamba_ssm_dt_rank", type=int, default=8)
+    parser.add_argument("--mamba_patch_size", type=int, default=16,
+                        help="Patch size for VisionMamba")
+    parser.add_argument("--mamba_embed_dim", type=int, default=256,
+                        help="Embedding dimension for VisionMamba")
+    parser.add_argument("--mamba_use_class_token", type=bool, default=True,
+                        help="Whether to use class token in VisionMamba")
+    parser.add_argument("--mamba_depth", type=int, default=4,
+                        help="Number of Mamba blocks in VisionMamba")
+    parser.add_argument("--mamba_conv_kernel_size", type=int, default=3,
+                        help="Convolution kernel size in VisionMamba")
+    parser.add_argument("--mamba_ssm_expend", type=int, default=2,
+                        help="SSM expend factor in VisionMamba")
+    parser.add_argument("--mamba_ssm_d_state", type=int, default=8,
+                        help="SSM d_state in VisionMamba")
+    parser.add_argument("--mamba_ssm_dt_rank", type=int, default=8,
+                        help="SSM dt_rank in VisionMamba")
 
     args = parser.parse_args()
 
