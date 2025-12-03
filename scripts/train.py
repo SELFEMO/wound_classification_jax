@@ -1,11 +1,3 @@
-# train.py (无外部 checkpoint 依赖版本)
-"""
-伤口分类训练脚本 - 支持 BatchNorm
-使用 JAX + Flax + Optax
-支持模型：CNN / ResNet34 / Mamba
-使用 pickle 保存 checkpoint（无需 Orbax 和 TensorFlow）
-"""
-
 import os
 import sys
 import argparse
