@@ -43,6 +43,7 @@ class basic_block(flax.linen.Module):
             use_running_average=not train,
             momentum=0.9,
             epsilon=1e-5,
+            dtype=jax.numpy.float32,
         )(x)
         x = flax.linen.relu(x)
 
@@ -58,6 +59,7 @@ class basic_block(flax.linen.Module):
             use_running_average=not train,
             momentum=0.9,
             epsilon=1e-5,
+            dtype=jax.numpy.float32,
         )(x)
 
         # Projection for the skip connection if needed  如果需要，为跳跃连接进行投影
@@ -73,6 +75,7 @@ class basic_block(flax.linen.Module):
                 use_running_average=not train,
                 momentum=0.9,
                 epsilon=1e-5,
+                dtype=jax.numpy.float32,
             )(residual)
 
         # Add skip connection  添加跳跃连接
@@ -117,6 +120,7 @@ class ResNet18(flax.linen.Module):
             use_running_average=not train,
             momentum=0.9,
             epsilon=1e-5,
+            dtype=jax.numpy.float32,
         )(x)
         x = flax.linen.relu(x)
         x = flax.linen.max_pool(
@@ -190,6 +194,7 @@ class ResNet34(flax.linen.Module):
             use_running_average=not train,
             momentum=0.9,
             epsilon=1e-5,
+            dtype=jax.numpy.float32,
         )(x)
         x = flax.linen.relu(x)
         x = flax.linen.max_pool(

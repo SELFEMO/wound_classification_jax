@@ -20,6 +20,8 @@ import flax
 import optax
 from PIL import Image
 
+from flax.training import train_state
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(ROOT_DIR))
 
@@ -191,7 +193,7 @@ def create_model(
 # 训练状态（支持 BatchNorm）
 # ========================================
 
-class TrainState(flax.training.train_state.TrainState):
+class TrainState(train_state.TrainState):
     """扩展的训练状态，包含 batch_stats"""
     batch_stats: Any
 
