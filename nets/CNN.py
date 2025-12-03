@@ -154,7 +154,7 @@ class SimpleCNN(flax.linen.Module):
 
         # Hidden Dense layer  隐藏全连接层
         x = flax.linen.Dense(
-            features=256,  # Number of hidden units  隐藏单元数
+            features=128,  # Number of hidden units  隐藏单元数
         )(x)
         x = flax.linen.relu(x)  # Activation function  激活函数
 
