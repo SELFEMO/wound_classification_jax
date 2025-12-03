@@ -861,6 +861,7 @@ if __name__ == "__main__":
             plt.legend()
             plt.tight_layout()
             plt.savefig(os.path.join(model_ckpt_dir, 'training_curves.png'))
+            plt.close()
 
     print("\n" + "=" * 60)
     print(f"Training done! Best acc: {best_val_acc:.4f} (epoch {best_epoch})")
