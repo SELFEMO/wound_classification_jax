@@ -16,9 +16,7 @@ from tqdm import tqdm
 
 import numpy as np
 import jax
-import jax.numpy as jnp
-from flax.training import train_state
-from flax import linen as nn
+import flax
 import optax
 from PIL import Image
 
@@ -59,7 +57,7 @@ def train_batch_generator(
         loader: data_loader,
         batch_size: int,
         shuffle: bool = True,
-) -> Iterable[Tuple[jnp.ndarray, jnp.ndarray]]:
+) -> Iterable[Tuple[jax.numpy.ndarray, jax.numpy.ndarray]]:
     """训练集批次生成器"""
     len_train = len(loader.dataset_train)
     indices = np.arange(len_train)
@@ -86,8 +84,8 @@ def train_batch_generator(
         if len(images_list) == 0:
             continue
 
-        batch_images = jnp.array(np.stack(images_list, axis=0))
-        batch_labels = jnp.array(np.array(labels_list, dtype=np.int32))
+        batch_images = jax.numpy.array(np.stack(images_list, axis=0))
+        batch_labels = jax.numpy.array(np.array(labels_list, dtype=np.int32))
 
         yield batch_images, batch_labels
 
@@ -95,7 +93,7 @@ def train_batch_generator(
 def val_batch_generator(
         loader: data_loader,
         batch_size: int,
-) -> Iterable[Tuple[jnp.ndarray, jnp.ndarray]]:
+) -> Iterable[Tuple[jax.numpy.ndarray, jax.numpy.ndarray]]:
     """验证集批次生成器"""
     test_items = loader.dataset_test
     image_size = loader.get_image_size()
@@ -134,8 +132,8 @@ def val_batch_generator(
         if len(images_list) == 0:
             continue
 
-        batch_images = jnp.array(np.stack(images_list, axis=0))
-        batch_labels = jnp.array(np.array(labels_list, dtype=np.int32))
+        batch_images = jax.numpy.array(np.stack(images_list, axis=0))
+        batch_labels = jax.numpy.array(np.array(labels_list, dtype=np.int32))
 
         yield batch_images, batch_labels
 
@@ -149,7 +147,7 @@ def create_model(
         num_classes: int,
         image_size: Tuple[int, int],
         mamba_config: Optional[dict] = None,
-) -> nn.Module:
+) -> flax.linen.Module:
     """根据名称创建模型"""
     if model_name == "cnn":
         return SimpleCNN(num_classes=num_classes)
@@ -193,21 +191,21 @@ def create_model(
 # 训练状态（支持 BatchNorm）
 # ========================================
 
-class TrainState(train_state.TrainState):
+class TrainState(flax.training.train_state.TrainState):
     """扩展的训练状态，包含 batch_stats"""
     batch_stats: Any
 
 
 def create_train_state(
         rng: jax.random.PRNGKey,
-        model: nn.Module,
+        model: flax.linen.Module,
         model_name: str,
         image_size: Tuple[int, int],
         learning_rate: float,
 ) -> TrainState:
     """初始化训练状态（支持 BatchNorm）"""
     H, W = image_size
-    dummy_batch = jnp.zeros((1, H, W, 3), dtype=jnp.float32)
+    dummy_batch = jax.numpy.zeros((1, H, W, 3), dtype=jax.numpy.float32)
 
     # 初始化参数
     variables = model.init(rng, dummy_batch, train=True)
@@ -239,7 +237,7 @@ def create_train_state(
 # 训练/验证函数（支持 BatchNorm）
 # ========================================
 
-def create_train_and_eval_functions(model: nn.Module, model_name: str):
+def create_train_and_eval_functions(model: flax.linen.Module, model_name: str):
     """创建训练和验证函数"""
 
     def forward_pass(params, batch_stats, batch_images, train: bool, mutable: bool = False):
@@ -306,8 +304,8 @@ def create_train_and_eval_functions(model: nn.Module, model_name: str):
             labels=batch_labels,
         ).mean()
 
-        preds = jnp.argmax(logits, axis=-1)
-        accuracy = jnp.mean((preds == batch_labels).astype(jnp.float32))
+        preds = jax.numpy.argmax(logits, axis=-1)
+        accuracy = jax.numpy.mean((preds == batch_labels).astype(jax.numpy.float32))
 
         return loss, accuracy
 
@@ -367,8 +365,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_augmentation", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_epochs", type=int, default=100)
-    parser.add_argument("--learning_rate", type=float, default=5e-5)
-    parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
+    parser.add_argument("--learning_rate", type=float, default=3e-4)
+    parser.add_argument("--ckpt_dir", type=str,
+                        default=os.path.join("..", "checkpoints"))
     parser.add_argument("--save_every", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
 
