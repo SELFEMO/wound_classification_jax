@@ -79,8 +79,8 @@ def clean_data(
             continue
         for fname in os.listdir(label_path):
             if (
-                    not fname.lower().endswith('.jpg') or
-                    fname.startswith('mirrored_')
+                    not fname.lower().endswith('.jpg')
+                    or fname.startswith('mirrored_')
             ):  # Process only .jpg files and skip mirrored images  # 仅处理 .jpg 文件并跳过镜像图像
                 continue
             try:
