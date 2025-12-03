@@ -85,14 +85,14 @@ def clean_data(
         for fname in os.listdir(label_path):
             if (
                     not fname.lower().endswith('.jpg')
-                    or fname.startswith('mirrored_')
+                    or fname.lower().startswith('mirrored_')
             ):  # Process only .jpg files and skip mirrored images  # 仅处理 .jpg 文件并跳过镜像图像
                 continue
             try:
                 fpath = os.path.join(label_path, fname)  # Full file path  # 完整文件路径
                 safe_label_name = label.replace('/', '_')  # Safe label name for directory creation  # 用于目录创建的安全标签名称
                 dest_label_path = os.path.join(
-                    '../data/dataset',  # Destination cleaned dataset directory  # 目标清理后数据集目录
+                    save_path,  # Destination cleaned dataset directory  # 目标清理后数据集目录
                     f'{index:06d}_{safe_label_name}.jpg'  # New filename with index and label  # 带有索引和标签的新文件名
                 )
                 with open(fpath, 'rb') as img:
@@ -108,10 +108,14 @@ def clean_data(
 
 if __name__ == "__main__":
     data_path = os.path.join('../data/Wound_dataset copy')
-
-    inspect_data(data_path)
-
-    clean_data(
-        data_path,
-        save_path='../data/dataset',
-    )
+    try:
+        inspect_data(data_path)
+    except Exception as e:
+        print(f"[Error] An error occurred during data inspection: {e}")
+    try:
+        clean_data(
+            data_path,
+            save_path='../data/dataset',
+        )
+    except Exception as e:
+        print(f"[Error] An error occurred during data cleaning: {e}")
