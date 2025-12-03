@@ -1,170 +1,58 @@
+# CNN.py 中补充的内容
 import jax
-import flax
-from typing import Optional
+import jax.numpy as jnp
+from flax import linen as nn
 
 
-class BasicCNNBlock(flax.linen.Module):
+class BaselineCNN(nn.Module):
+    """来自 jax4max.py 的 Baseline CNN 的 Flax 版本（分类用）
+
+    结构大致为：
+    [Conv -> GroupNorm -> ReLU -> MaxPool] x 4 -> FC(256) -> FC(128) -> FC(num_classes)
     """
-    A basic CNN block consisting of Conv -> BatchNorm -> ReLU -> MaxPool.  由 Conv -> BatchNorm -> ReLU -> MaxPool 组成的基本 CNN 块。
+    num_classes: int = 9  # 和 jax4max 里的 HYPERPARAMS["num_classes"] 一致
 
-    This block can be reused multiple times in a CNN architecture.  该块可以在 CNN 架构中重复使用。
-    """
-    out_channels: int  # Number of output channels  输出通道数
-    kernel_size: Optional[int] = 3  # Convolution kernel size  卷积核大小
+    @nn.compact
+    def __call__(self, x, train: bool = True):
+        # x: (batch, H, W, 3)  输入图像已经归一化到 [0, 1]
 
-    @flax.linen.compact
-    def __call__(
-            self,
-            x: jax.numpy.ndarray,
-            train: bool = True
-    ) -> jax.numpy.ndarray:
-        """
-        Forward pass of the CNN block.
+        def conv_block(x, out_ch):
+            # 对应 Equinox 里的 ConvolutionalBlock：Conv2d + GroupNorm + ReLU
+            x = nn.Conv(
+                features=out_ch,
+                kernel_size=(3, 3),
+                padding="SAME",
+                use_bias=False,
+            )(x)
+            # GroupNorm 的组数不能大于通道数
+            num_groups = min(32, out_ch)
+            x = nn.GroupNorm(num_groups=num_groups)(x)
+            x = nn.relu(x)
+            return x
 
-        :param x: Input tensor  输入张量
-        :param train:  Whether the model is in training mode  模型是否处于训练模式
+        # 4 个卷积块，每个后面接一次 2x2 MaxPool（总共下采样 16 倍）
+        channels = [32, 64, 128, 256]
+        for c in channels:
+            x = conv_block(x, c)
+            x = nn.max_pool(
+                x,
+                window_shape=(2, 2),
+                strides=(2, 2),
+                padding="VALID",
+            )
 
-        :return: Output tensor after passing through the block  通过块后的输出张量
-        """
-        x = flax.linen.Conv(
-            features=self.out_channels,
-            kernel_size=(self.kernel_size, self.kernel_size),
-            strides=(1, 1),
-            padding='SAME',
-            use_bias=False,
-        )(x)
-        x = flax.linen.BatchNorm(
-            use_running_average=not train,
-            momentum=0.9,
-            epsilon=1e-5,
-        )(x)
-        x = flax.linen.relu(x)
-        x = flax.linen.max_pool(
-            x,
-            window_shape=(2, 2),
-            strides=(2, 2),
-            padding='VALID',
-        )
-        return x
+        # 展平
+        x = x.reshape((x.shape[0], -1))
 
+        # 全连接部分：256 -> 128 -> num_classes
+        x = nn.Dense(256)(x)
+        x = nn.relu(x)
 
-class SimpleCNN(flax.linen.Module):
-    """
-    A simple Convolutional Neural Network.  简单卷积神经网络。
+        x = nn.Dense(128)(x)
+        x = nn.relu(x)
 
-    Conv(32) -> BatchNorm -> ReLU -> MaxPool ->
-    Conv(64) -> BatchNorm -> ReLU -> MaxPool ->
-    Conv(128) -> BatchNorm -> ReLU -> GAP -> Dense(num_classes)
-    """
-    num_classes: int
-
-    @flax.linen.compact
-    def __call__(
-            self,
-            x: jax.numpy.ndarray, train: bool = True
-    ) -> jax.numpy.ndarray:
-        """
-        Forward pass of the CNN.
-
-        :param x: Input tensor  输入张量
-        :param train:  Whether the model is in training mode  模型是否处于训练模式
-
-        :return: Output tensor after passing through the CNN  通过 CNN 后的输出张量
-        """
-        # x: (B, H, W, C)
-
-        # # Block 1
-        # x = flax.linen.Conv(
-        #     features=32,  # Number of output channels  输出通道数
-        #     kernel_size=(3, 3),  # The size of the convolutional kernel  卷积核的大小
-        #     strides=(1, 1),  # The stride of the convolution  卷积的步幅
-        #     padding='SAME',  # Padding method  填充方法
-        #     use_bias=False,  # No bias for Conv when using BatchNorm  使用批量归一化时，Conv 不使用偏置
-        # )(x)  # Convolutional layer  卷积层
-        # x = flax.linen.BatchNorm(
-        #     use_running_average=not train,  # Use running average during evaluation  在评估期间使用运行平均值
-        #     momentum=0.9,  # Momentum for the moving average  移动平均的动量
-        #     epsilon=1e-5,  # Small constant to avoid division by zero  避免除以零的小常数
-        # )(x)  # Batch normalization layer  批量归一化层
-        # x = flax.linen.relu(x)  # Activation function  激活函数
-        # x = flax.linen.max_pool(
-        #     x,  # Input tensor  输入张量
-        #     window_shape=(2, 2),  # Pooling window size  池化窗口大小
-        #     strides=(2, 2),  # Pooling stride  池化步幅
-        #     padding='VALID',  # Padding method  填充方法
-        # )  # Max pooling layer  最大池化层
-        #
-        # # Block 2
-        # x = flax.linen.Conv(
-        #     features=64,
-        #     kernel_size=(3, 3),
-        #     strides=(1, 1),
-        #     padding='SAME',
-        #     use_bias=False,
-        # )(x)
-        # x = flax.linen.BatchNorm(
-        #     use_running_average=not train,
-        #     momentum=0.9,
-        #     epsilon=1e-5,
-        # )(x)
-        # x = flax.linen.relu(x)
-        # x = flax.linen.max_pool(
-        #     x,
-        #     window_shape=(2, 2),
-        #     strides=(2, 2),
-        #     padding='VALID',
-        # )
-        #
-        # # Block 3
-        # x = flax.linen.Conv(
-        #     features=128,
-        #     kernel_size=(3, 3),
-        #     strides=(1, 1),
-        #     padding='SAME',
-        #     use_bias=False,
-        # )(x)
-        # x = flax.linen.BatchNorm(
-        #     use_running_average=not train,
-        #     momentum=0.9,
-        #     epsilon=1e-5,
-        # )(x)
-        # x = flax.linen.relu(x)
-
-        # Using BasicCNNBlock for cleaner code
-        CNN_CONFIG = [
-            (32, 3, 1),
-            (64, 3, 1),
-            (128, 3, 1),
-        ]  # List of (out_channels, kernel_size, num_repeats)  （输出通道数，卷积核大小，重复次数）列表
-        # CNN_CONFIG = [
-        #     (32, 5, 1),
-        #     (64, 4, 1),
-        #     (128, 3, 1),
-        #     (256, 3, 2),
-        # ]  # List of (out_channels, kernel_size, num_repeats)  （输出通道数，卷积核大小，重复次数）列表
-        for out_channels, kernel_size, num_repeats in CNN_CONFIG:
-            for _ in range(num_repeats):
-                x = BasicCNNBlock(
-                    out_channels=out_channels,
-                    kernel_size=kernel_size,
-                )(x, train=train)
-
-        # (B, H, W, C) -> (B, C)
-        x = jax.numpy.mean(x, axis=(1, 2))  # Global Average Pooling  全局平均池化
-
-        # Hidden Dense layer  隐藏全连接层
-        x = flax.linen.Dense(
-            # features=128,  # Number of hidden units  隐藏单元数
-            features=256,  # Number of hidden units  隐藏单元数
-        )(x)
-        x = flax.linen.relu(x)  # Activation function  激活函数
-
-        # Output layer: Classification  输出层：分类
-        y = flax.linen.Dense(
-            features=self.num_classes,  # Number of output classes  输出类别数
-        )(x)  # Fully connected layer  全连接层
-
-        return y  # Output tensor  输出张量
+        logits = nn.Dense(self.num_classes)(x)
+        return logits
 
 
 # ===== Comprehensive Test Code =====
@@ -195,7 +83,7 @@ if __name__ == "__main__":
     # ===== 2. Create Model =====
     print("\n[2] Creating SimpleCNN model...")
     try:
-        model = SimpleCNN(num_classes=num_classes)
+        model = BaselineCNN(num_classes=num_classes)
         print("    ✓ Model created")
     except Exception as e:
         print(f"    ✗ Failed to create model: {e}")
@@ -494,7 +382,7 @@ if __name__ == "__main__":
     # ===== 11. Architecture Analysis =====
     print("\n[11] Analyzing model architecture...")
     try:
-        print(f"    Model architecture: SimpleCNN")
+        print(f"    Model architecture: BaselineCNN")
         print(f"    Total parameters: {total_params:,}")
 
         # Calculate FLOPs (approximate)

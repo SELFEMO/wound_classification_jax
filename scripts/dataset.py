@@ -215,9 +215,9 @@ class data_loader:
         :return: A tuple of (image, label_index, image_index) if successful, otherwise None.  如果成功，则返回 (image, label_index, image_index) 元组，否则返回 None。
         """
         # Check index bounds  检查索引范围
-        if self.is_training and (index < 0 or index >= len(self.dataset_train)):
+        if self.is_training and (index < 0 or index >= len(self.dataset_train)):  # Training mode  训练模式
             return None
-        elif not self.is_training and (index < 0 or index >= len(self.dataset_test)):
+        elif not self.is_training and (index < 0 or index >= len(self.dataset_test)):  # Testing mode  测试模式
             return None
 
         # Retrieve data entry  检索数据条目
@@ -232,7 +232,7 @@ class data_loader:
             print(f"[Error] Could not load image {data['path']}: {e}")
             return None
 
-        if self.use_augmentation and not self.is_last:
+        if self.use_augmentation and not self.is_last and self.is_training:
             image = apply_augmentation(image)
 
         image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]

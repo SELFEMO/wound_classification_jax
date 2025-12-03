@@ -12,3 +12,9 @@ python test.py --model resnet18
 # python train.py --model resnet34
 # python test.py --model resnet34
 
+python train.py --model baseline_cnn
+python test.py --model baseline_cnn
+
+python train.py --model vision_mamba
+python test.py --model vision_mamba
+
