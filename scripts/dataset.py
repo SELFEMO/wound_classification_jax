@@ -237,7 +237,8 @@ class data_loader:
         if self.use_augmentation and not self.is_last:
             image = apply_augmentation(image)
 
-        image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]
+        # image = numpy.array(image) / 255.0  # Normalize pixel values to [0, 1]  将像素值归一化到 [0, 1]
+        image = numpy.array(image) / 255.0 - 0.5  # Normalize pixel values to [-0.5, 0.5]  将像素值归一化到 [-0.5, 0.5]
 
         return image, data['label_index'], data['index']
 

@@ -265,6 +265,9 @@ def create_train_and_eval_functions(model: flax.linen.Module, model_name: str):
             return logits
 
     def loss_fn(params, batch_stats, batch_images, batch_labels):
+        """
+        Computes the loss and updated batch statistics.  计算损失和更新的批量统计信息。
+        """
         logits, updates = forward_pass(
             params, batch_stats, batch_images, train=True, mutable=True
         )
@@ -274,6 +277,25 @@ def create_train_and_eval_functions(model: flax.linen.Module, model_name: str):
         ).mean()
         return loss, updates
 
+    def clip_gradients(gradients, max_norm: float = 1.0):
+        """
+        Clips gradients to have a maximum norm of max_norm.  将梯度裁剪为最大范数为 max_norm。
+        """
+        norms = jax.tree_util.tree_map(
+            lambda x: jax.numpy.linalg.norm(x),
+            gradients
+        )
+        total_norm = jax.tree_util.tree_reduce(
+            lambda x, y: x + y,
+            norms
+        )
+        scale = jax.numpy.minimum(1.0, max_norm / (total_norm + 1e-6))
+        clipped_gradients = jax.tree_util.tree_map(
+            lambda x: x * scale,
+            gradients
+        )
+        return clipped_gradients
+
     @jax.jit
     def train_step(state: TrainState, batch_images, batch_labels):
         grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
@@ -281,12 +303,13 @@ def create_train_and_eval_functions(model: flax.linen.Module, model_name: str):
             state.params, state.batch_stats, batch_images, batch_labels
         )
 
-        grads = jax.tree_util.tree_map(
-            lambda g: jax.numpy.clip(
-                g, -1.0, 1.0  # Clip gradients to the range [-1, 1]
-            ),
-            grads
-        )  # Gradient clipping  梯度裁剪
+        # grads = jax.tree_util.tree_map(
+        #     lambda g: jax.numpy.clip(
+        #         g, -1.0, 1.0  # Clip gradients to the range [-1, 1]
+        #     ),
+        #     grads
+        # )  # Gradient clipping  梯度裁剪
+        grads = clip_gradients(grads, max_norm=1.0)
 
         state = state.apply_gradients(
             grads=grads,
