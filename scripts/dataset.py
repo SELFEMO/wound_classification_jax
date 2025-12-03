@@ -26,20 +26,19 @@ def fname_to_index_and_label(
         index_str, label = base_name.split('_')  # Split by underscore  按下划线分割
         index = int(index_str)  # Convert index to integer  将索引转换为整数
         return index, label
-    except Exception:
+    except Exception as e:
+        print(f"[Error] Could not parse filename {fname}: {e}")
         return None
 
 
 def load_dataset(
         data_path: Optional[str] = None,
-        image_size: Optional[tuple] = (224, 224),
         train_split_ratio: Optional[float] = 1.0,
 ) -> Optional[tuple]:
     """
     Loads and preprocesses the dataset from the given path.  从给定路径加载和预处理数据集。
 
     :param data_path: The local path where the dataset is stored. If None, returns None.  本地存储数据集的路径。如果为 None，则返回 None。
-    :param image_size: The desired size to which each image will be resized.  If None, images will be resized to (224, 224).  每个图像将调整为的所需大小。如果为 None，则图像将调整为 (224, 224)。
     :param train_split_ratio: The proportion of the dataset to be used for training. If 1.0, the entire dataset is used for training.  用于训练的数据集比例。如果为 1.0，则整个数据集用于训练。
 
     :return: A tuple of (dataset_train, dataset_test, unique_labels) if successful, otherwise None.  如果成功，则返回 (dataset_train, dataset_test, unique_labels) 元组，否则返回 None。
