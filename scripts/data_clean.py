@@ -84,7 +84,7 @@ def clean_data(
             continue
         for fname in os.listdir(label_path):
             if (
-                    not fname.lower().endswith('.jpg')
+                    not fname.lower().endswith(('.png', '.jpg', '.jpeg'))  # Process only image files  # 仅处理图像文件
                     or fname.lower().startswith('mirrored_')
             ):  # Process only .jpg files and skip mirrored images  # 仅处理 .jpg 文件并跳过镜像图像
                 continue
@@ -104,6 +104,11 @@ def clean_data(
                 corrupted_images.append(fpath)
                 continue
             index += 1
+    print(f"[Info] Corrupted images: {corrupted_images}") if corrupted_images else print("[Info] No corrupted images found.")
+    print(
+        f"[Info] Total images processed: {index - 1} "
+        f" (excluding corrupted images: {len(corrupted_images)})"
+    ) if corrupted_images else f"[Info] Total images processed: {index - 1}"
 
 
 if __name__ == "__main__":
