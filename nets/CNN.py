@@ -131,17 +131,17 @@ class SimpleCNN(flax.linen.Module):
         # x = flax.linen.relu(x)
 
         # Using BasicCNNBlock for cleaner code
-        CNN_CONFIG = [
-            (32, 3, 1),
-            (64, 3, 1),
-            (128, 3, 1),
-        ]  # List of (out_channels, kernel_size, num_repeats)  （输出通道数，卷积核大小，重复次数）列表
         # CNN_CONFIG = [
-        #     (32, 5, 1),
-        #     (64, 4, 1),
+        #     (32, 3, 1),
+        #     (64, 3, 1),
         #     (128, 3, 1),
-        #     (256, 3, 2),
         # ]  # List of (out_channels, kernel_size, num_repeats)  （输出通道数，卷积核大小，重复次数）列表
+        CNN_CONFIG = [
+            (32, 5, 1),
+            (64, 4, 1),
+            (128, 3, 1),
+            (256, 3, 2),
+        ]  # List of (out_channels, kernel_size, num_repeats)  （输出通道数，卷积核大小，重复次数）列表
         for out_channels, kernel_size, num_repeats in CNN_CONFIG:
             for _ in range(num_repeats):
                 x = BasicCNNBlock(
@@ -154,7 +154,8 @@ class SimpleCNN(flax.linen.Module):
 
         # Hidden Dense layer  隐藏全连接层
         x = flax.linen.Dense(
-            features=128,  # Number of hidden units  隐藏单元数
+            # features=128,  # Number of hidden units  隐藏单元数
+            features=256,  # Number of hidden units  隐藏单元数
         )(x)
         x = flax.linen.relu(x)  # Activation function  激活函数
 
