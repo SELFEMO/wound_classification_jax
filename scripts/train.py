@@ -682,7 +682,7 @@ if __name__ == "__main__":
                         help="Batch size for training and validation")
     parser.add_argument("--num_epochs", type=int, default=50,
                         help="Number of training epochs")
-    parser.add_argument("--dropout_rate", type=Optional[float], default=None,
+    parser.add_argument("--dropout_rate", type=float, default=0.0,
                         help="Dropout rate for the model")
     parser.add_argument("--learning_rate", type=float, default=5e-5,
                         help="Learning rate for the optimizer")
