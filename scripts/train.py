@@ -449,27 +449,36 @@ def create_train_and_eval_functions(
             batch_stats: Any,
             batch_images: jax.numpy.ndarray,
             batch_labels: jax.numpy.ndarray,
+            weight_decay: float = 1e-4,
     ) -> Tuple[jax.numpy.ndarray, Any]:
         """
-        Computes the loss and updated batch statistics.  计算损失和更新的批量统计信息。
+        Computes the ce_loss and updated batch statistics.  计算损失和更新的批量统计信息。
 
         :param params: The model parameters.  模型参数。
         :param batch_stats: The batch statistics for BatchNorm layers.  BatchNorm 层的批量统计信息。
         :param batch_images: The input batch of images.  输入图像批次。
         :param batch_labels: The true labels for the batch.  批次的真实标签。
+        :param weight_decay: The weight decay factor for L2 regularization.  L2 正则化的权重衰减因子。
 
-        :return: A tuple of (loss, updated batch_stats).  （损失，更新的 batch_stats）的元组。
+        :return: A tuple of (ce_loss, updated batch_stats).  （损失，更新的 batch_stats）的元组。
         """
         # Forward pass with mutable batch_stats  使用可变的 batch_stats 进行前向传递
         logits, updates = forward_pass(
             params, batch_stats, batch_images, train=True, mutable=True
         )
         # Compute loss using softmax cross-entropy  使用 softmax 交叉熵计算损失
-        loss = optax.softmax_cross_entropy_with_integer_labels(
+        ce_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits,
             labels=batch_labels,
         ).mean()
-        return loss, updates
+        return ce_loss, updates
+        # # L2 regularization (weight decay)  L2 正则化（权重衰减）
+        # l2_reg = weight_decay * sum([
+        #     jax.numpy.sum(
+        #         jax.numpy.square(p)
+        #     ) for p in jax.tree_util.tree_leaves(params)
+        # ])
+        # return ce_loss + l2_reg, updates
 
     def clip_gradients(
             gradients: Any,
@@ -514,9 +523,9 @@ def create_train_and_eval_functions(
         :param batch_images: The input batch of images.  输入图像批次.
         :param batch_labels: The true labels for the batch.  批次的真实标签。
 
-        :return: A tuple of (updated_state, loss).  （更新后的状态，损失）的元组。
+        :return: A tuple of (updated_state, ce_loss).  （更新后的状态，损失）的元组。
         """
-        # Compute loss and gradients  计算损失和梯度
+        # Compute ce_loss and gradients  计算损失和梯度
         grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
         (loss, updates), grads = grad_fn(
             state.params, state.batch_stats, batch_images, batch_labels
@@ -537,7 +546,7 @@ def create_train_and_eval_functions(
             batch_stats=updates['batch_stats']
         )
 
-        return state, loss  # Return updated state and loss  返回更新后的状态和损失
+        return state, loss  # Return updated state and ce_loss  返回更新后的状态和损失
 
     @jax.jit
     def eval_step(
@@ -554,14 +563,14 @@ def create_train_and_eval_functions(
         :param batch_images: The input batch of images.  输入图像批次.
         :param batch_labels: The true labels for the batch.  批次的真实标签。
 
-        :return: A tuple of (loss, accuracy).  （损失，准确率）的元组。
+        :return: A tuple of (ce_loss, accuracy).  （损失，准确率）的元组。
         """
         # Forward pass  前向传递
         logits = forward_pass(
             params, batch_stats, batch_images, train=False, mutable=False
         )
 
-        # Compute loss  计算损失
+        # Compute ce_loss  计算损失
         loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits,
             labels=batch_labels,
@@ -573,7 +582,7 @@ def create_train_and_eval_functions(
         # Compute accuracy  计算准确率
         accuracy = jax.numpy.mean((preds == batch_labels).astype(jax.numpy.float32))
 
-        return loss, accuracy  # Return loss and accuracy  返回损失和准确率
+        return loss, accuracy  # Return ce_loss and accuracy  返回损失和准确率
 
     return train_step, eval_step  # Return the training and evaluation functions  返回训练和评估函数
 
