@@ -121,23 +121,23 @@ def apply_augmentation(
     # Random rotation  随机旋转
     if numpy.random.rand() > 0.7 and not is_special_augmentation:
         # angle = numpy.random.uniform(-360, 360)
-        angle = numpy.random.uniform(-10, 10)
+        angle = numpy.random.uniform(-15, 15)
         image = image.rotate(angle)
-        is_special_augmentation = True
+        # is_special_augmentation = True
 
     # Random brightness adjustment  随机亮度调整
     if numpy.random.random() > 0.5:
         enhancer = ImageEnhance.Brightness(image)
-        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
 
     # Random contrast adjustment  随机对比度调整
     if numpy.random.random() > 0.5:
         enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
 
     # Random zoom  随机缩放
     if numpy.random.rand() > 0.7 and not is_special_augmentation:
-        zoom_factor = numpy.random.uniform(0.9, 1.1)
+        zoom_factor = numpy.random.uniform(0.8, 1.2)
         new_w, new_h = int(w * zoom_factor), int(h * zoom_factor)
         image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
         left = (new_w - w) // 2
@@ -149,13 +149,14 @@ def apply_augmentation(
     # Random color jitter  随机颜色抖动
     if numpy.random.random() > 0.8:
         enhancer = ImageEnhance.Color(image)
-        image = enhancer.enhance(numpy.random.uniform(0.9, 1.1))
+        image = enhancer.enhance(numpy.random.uniform(0.8, 1.2))
+        is_special_augmentation = True
 
     # Gaussian noise  高斯噪声
-    if numpy.random.random() > 0.9 and not is_special_augmentation:
+    if numpy.random.random() > 0.8 and not is_special_augmentation:
         image = image.filter(
             ImageFilter.GaussianBlur(
-                radius=numpy.random.uniform(0.5, 1.5)
+                radius=numpy.random.uniform(0.0, 2.0)
             )
         )
 
