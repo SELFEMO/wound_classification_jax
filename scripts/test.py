@@ -338,7 +338,12 @@ if __name__ == "__main__":
             'd_model': args.vision_mamba_d_model,
             'd_state': args.vision_mamba_d_state,
         }
-    model = create_model(args.model, num_classes, mamba_config)
+    model = create_model(
+        model_name=args.model,
+        num_classes=num_classes,
+        dropout_rate=None,
+        mamba_config=mamba_config,
+    )
 
     # Here, we only need to load the parameters; we don't need to reinitialize TrainState.  这里只需要加载参数，不需要重新初始化 TrainState
     ckpt = load_checkpoint(ckpt_path)
@@ -380,7 +385,10 @@ if __name__ == "__main__":
             variables,  # 模型变量
             batch_images,  # Input images  输入图像
             train=False,  # Evaluation mode  评估模式
-            mutable=False  # No mutable state  无可变状态
+            mutable=False,  # No mutable state  无可变状态
+            # rngs={
+            #     "dropout": jax.random.PRNGKey(0)  # Fixed dropout key during evaluation  评估期间固定 dropout 密钥
+            # }
         )  # Forward pass  前向传播
         loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits,

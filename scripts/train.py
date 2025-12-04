@@ -4,6 +4,8 @@ import argparse
 from typing import Tuple, Iterable, Optional, Any
 import time
 import pickle
+
+from flax.core.nn import dropout
 from tqdm import tqdm
 
 import numpy as np
@@ -223,6 +225,7 @@ def val_batch_generator(
 def create_model(
         model_name: str,
         num_classes: int,
+        dropout_rate: Optional[float] = None,
         mamba_config: Optional[dict] = None,
 ) -> flax.linen.Module:
     """
@@ -230,22 +233,35 @@ def create_model(
 
     :param model_name: The name of the model to create.  要创建的模型名称。
     :param num_classes: The number of output classes for the model.  模型的输出类别数。
+    :param dropout_rate: The dropout rate for the model (if applicable).  模型的 dropout 率（如果适用）。
     :param mamba_config: Configuration dictionary for VisionMamba model (if applicable).  VisionMamba 模型的配置字典（如果适用）。
 
     :return: The created model instance.  创建的模型实例。
     """
     # CNN Model  CNN 模型
     if model_name == "cnn":
-        return SimpleCNN(num_classes=num_classes)
+        return SimpleCNN(
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+        )
     # Baseline CNN Model  基线 CNN 模型
     elif model_name == "baseline_cnn":
-        return BaselineCNN(num_classes=num_classes)
+        return BaselineCNN(
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+        )
     # ResNet18 Models  ResNet18 模型
     elif model_name == "resnet18":
-        return ResNet18(num_classes=num_classes)
+        return ResNet18(
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+        )
     # ResNet34 Models  ResNet34 模型
     elif model_name == "resnet34":
-        return ResNet34(num_classes=num_classes)
+        return ResNet34(
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+        )
     # VisionMamba Model  VisionMamba 模型
     elif model_name == "mamba":
         if mamba_config is None:
@@ -269,6 +285,7 @@ def create_model(
             ssm_expend=mamba_config["ssm_expend"],
             ssm_d_state=mamba_config["ssm_d_state"],
             ssm_dt_rank=mamba_config["ssm_dt_rank"],
+            dropout_rate=dropout_rate,
         )
     elif model_name == "vision_mamba":
         if mamba_config is None:
@@ -283,6 +300,7 @@ def create_model(
             patch_size=mamba_config["patch_size"],
             num_layers=mamba_config["num_layers"],
             d_model=mamba_config["d_model"],
+            dropout_rate=dropout_rate,
         )
     # Unknown Model  未知模型
     else:
@@ -407,7 +425,10 @@ def create_train_and_eval_functions(
                 variables,  # Model variables  模型变量
                 input_data,  # Input data  输入数据
                 train=train,  # Training mode  训练模式
-                mutable=['batch_stats']  # Specifies which collections should be treated as mutable  指定哪些集合应视为可变
+                mutable=['batch_stats'],  # Specifies which collections should be treated as mutable  指定哪些集合应视为可变
+                rngs={
+                    'dropout': jax.random.PRNGKey(0)  # Random key for dropout (if used)  dropout 的随机密钥（如果使用）
+                }
             )
             return outputs
         # Non-mutable case  非可变情况
@@ -416,7 +437,10 @@ def create_train_and_eval_functions(
                 variables,
                 input_data,
                 train=train,
-                mutable=False  # No mutable collections  没有可变集合
+                mutable=False,  # No mutable collections  没有可变集合
+                rngs={
+                    'dropout': jax.random.PRNGKey(0)
+                }
             )
             return logits
 
@@ -656,8 +680,10 @@ if __name__ == "__main__":
                         help="Whether to use data augmentation during training")
     parser.add_argument("--batch_size", type=int, default=16,
                         help="Batch size for training and validation")
-    parser.add_argument("--num_epochs", type=int, default=100,
+    parser.add_argument("--num_epochs", type=int, default=50,
                         help="Number of training epochs")
+    parser.add_argument("--dropout_rate", type=Optional[float], default=None,
+                        help="Dropout rate for the model")
     parser.add_argument("--learning_rate", type=float, default=5e-5,
                         help="Learning rate for the optimizer")
     parser.add_argument("--ckpt_dir", type=str,
@@ -756,9 +782,10 @@ if __name__ == "__main__":
             'd_state': args.vision_mamba_d_state,
         }
     model = create_model(
-        args.model,
-        num_classes,
-        mamba_config  # VisionMamba 配置
+        model_name=args.model,
+        num_classes=num_classes,
+        dropout_rate=args.dropout_rate,
+        mamba_config=mamba_config,  # VisionMamba 配置
     )
 
     # Initialize training state  初始化训练状态

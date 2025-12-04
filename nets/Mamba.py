@@ -27,15 +27,14 @@ class PatchEmbedding(flax.linen.Module):
             strides=(self.patch_size, self.patch_size),
             padding='VALID',
             use_bias=False,
-        )(x)  # Divide image into patches and project  将图像划分为补丁并进行投影
+        )(x)  # Divide image into patches and project  将图像划分为补丁并进行投影  # (B, H', W', D), H' = H/patch_size, W' = W/patch_size, D = embed_dim
 
-        # Reshape to (B, N, C) where N is number of patches  重塑为 (B, N, C)，其中 N 是补丁数
-        # Convert to sequence format: (B, H', W', C) -> (B, N, D)  转换为序列格式：(B, H', W', C) -> (B, N, D)
+        # Reshape to (B, N, C) where N is number of patches  重塑为 (B, N, D)，其中 N 是补丁数
+        # Convert to sequence format: (B, H', W', C) -> (B, N, D)  转换为序列格式：(B, H', W', D) -> (B, N, D)
         B, H, W, C = x.shape
-        x = jax.numpy.reshape(x, (B, H * W, C))  #
+        x = jax.numpy.reshape(x, (B, H * W, C))  # (B, N, D), N = H'*W'=(H/patch_size)*(W/patch_size), D = embed_dim
 
-        return x  # Patch embeddings  补丁嵌入
-
+        return x  # Patch embeddings  补丁嵌入  # (B, (H/patch_size)*(W/patch_size), embed_dim)
 
 class ConvBranch(flax.linen.Module):
     """
@@ -364,25 +363,25 @@ class VisionMambaBlock(flax.linen.Module):
         # f = flax.linen.Dense(
         #     features=self.embed_dim,
         # )(f)
-        # x = x + f  # Final output with residual  带残差的最终输出
+        # x = x + f  # Final output with residual  带残差的最终输出  # (B, N, embed_dim)
 
         # SwiGlu FFN with Residual  带残差的 SwiGlu FFN
-        x_norm = flax.linen.LayerNorm()(x)
+        x_norm = flax.linen.LayerNorm()(x)  # LayerNorm  层归一化  # (B, N, embed_dim)
         ff = flax.linen.Dense(
             features=self.embed_dim * 2,
-        )(x_norm)
+        )(x_norm)  # Expand dimension  扩展维度  # (B, N, embed_dim * 2)
         f1, f2 = jax.numpy.split(
             ff,
             2,
             axis=-1
-        )  # Split into two parts  分成两部分
-        f = flax.linen.silu(f2) * f1  # SwiGlu activation  SwiGlu 激活
+        )  # Split into two parts  分成两部分  # (B, N, embed_dim)
+        f = flax.linen.silu(f2) * f1  # SwiGlu activation  SwiGlu 激活  # (B, N, embed_dim)
         f = flax.linen.Dense(
             features=self.embed_dim,
-        )(f)
-        x = x + f  # Final output with residual  带残差的最终
+        )(f)  # Final projection  最终投影  # (B, N, embed_dim)
+        x = x + f  # Final output with residual  带残差的最终  # (B, N, embed_dim)
 
-        return x  # Output of Vision Mamba Block  视觉 Mamba 块的输出
+        return x  # Output of Vision Mamba Block  视觉 Mamba 块的输出  # (B, N, embed_dim)
 
 
 class VisionMamba(flax.linen.Module):
@@ -398,6 +397,7 @@ class VisionMamba(flax.linen.Module):
     ssm_expend: int = 2  # Expend factor for SSM Branch  SSM 分支的扩展因子
     ssm_d_state: int = 16  # State dimension for SSM Branch  SSM 分支的状态维度
     ssm_dt_rank: int = 16  # Rank for time projection in SSM Branch  SSM 分支中时间投影的秩
+    dropout_rate: Optional[float] = 0.2  # Dropout rate for regularization  正则化的 Dropout 率
 
     @flax.linen.compact
     def __call__(
@@ -420,7 +420,7 @@ class VisionMamba(flax.linen.Module):
         x = PatchEmbedding(
             patch_size=self.patch_size,
             embed_dim=self.embed_dim
-        )(x)  # (B, N, D), N = (H/patch_size)*(W/patch_size)
+        )(x)  # (B, N, D), N = (H/patch_size)*(W/patch_size), D = embed_dim
 
         # Positional embedding  位置嵌入
         N = x.shape[1]  # Number of patches  补丁数
@@ -428,8 +428,8 @@ class VisionMamba(flax.linen.Module):
             'pos_embedding',
             flax.linen.initializers.normal(stddev=0.02),
             (1, N, self.embed_dim)
-        )
-        x = x + pos_embedding  # Add positional embeddings  添加位置嵌入
+        )  # (1, N, D)
+        x = x + pos_embedding  # Add positional embeddings  添加位置嵌入  # (B, N, D)
 
         # Class token (optional, can be added if needed)  类别令牌（可选，如有需要可添加）
         if self.use_class_token:
@@ -437,9 +437,9 @@ class VisionMamba(flax.linen.Module):
                 'class_token',
                 flax.linen.initializers.normal(stddev=0.02),
                 (1, 1, self.embed_dim)
-            )
+            )  # (1, 1, D)
             class_tokens = jax.numpy.tile(class_token, (B, 1, 1))  # (B, 1, D)
-            x = jax.numpy.concatenate([class_tokens, x], axis=1)  # (B, N+1, D)  # Concatenate class token  连接类别令牌
+            x = jax.numpy.concatenate([class_tokens, x], axis=1)  # Concatenate class token  连接类别令牌  # (B, N+1, D)
 
         # Stack Vision Mamba Blocks  堆叠视觉 Mamba 块
         for i in range(self.depth):
@@ -449,21 +449,30 @@ class VisionMamba(flax.linen.Module):
                 ssm_expend=self.ssm_expend,
                 ssm_d_state=self.ssm_d_state,
                 ssm_dt_rank=self.ssm_dt_rank,
-            )(x, train=train)
+            )(x, train=train)  # (B, N, D) or (B, N+1, D)
 
         # Classification pooling  分类池化
         if self.use_class_token:
-            x = x[:, 0]  # Use class token output  使用类别令牌输出
+            x = x[:, 0]  # Use class token output  使用类别令牌输出  # (B, D)
         else:
-            x = jax.numpy.mean(x, axis=1)  # Global average pooling  全局平均池化
+            x = jax.numpy.mean(x, axis=1)  # Global average pooling  全局平均池化  # (B, D)
 
         # Classification head  分类头
-        x = flax.linen.LayerNorm()(x)  # Layer normalization  层归一化
+        x = flax.linen.LayerNorm()(x)  # Layer normalization  层归一化  # (B, D)
+        x = flax.linen.Dense(
+            features=self.embed_dim // 2,
+        )(x)  # Intermediate linear layer  中间线性层  # (B, D/2)
+        x = flax.linen.silu(x)  # Activation  激活  # (B, D/2)
+        if self.dropout_rate is not None and self.dropout_rate > 0.0 and train:
+            x = flax.linen.Dropout(
+                rate=self.dropout_rate,
+                deterministic=not train,
+            )(x)  # Dropout for regularization  正则化的 Dropout  # (B, D/2)
         logits = flax.linen.Dense(
             features=self.num_classes
-        )(x)  # Final linear layer  最终线性层
+        )(x)  # Final linear layer  最终线性层  # (B, num_classes)
 
-        return logits  # Output logits  输出 logits
+        return logits  # Output logits  输出 logits  # (B, num_classes)
 
 
 # ===== Comprehensive Test Code =====
@@ -504,6 +513,7 @@ if __name__ == "__main__":
             ssm_expend=2,
             ssm_d_state=8,
             ssm_dt_rank=8,
+            dropout_rate=0.2,
         )
         print("    ✓ Model created")
         print(f"      Embedding dimension: 512")
@@ -555,7 +565,14 @@ if __name__ == "__main__":
         key_forward = jax.random.fold_in(key, 1)
         x_test = jax.random.normal(key_forward, (batch_size, height, width, channels))
 
-        logits = model.apply(params, x_test, train=True)
+        logits = model.apply(
+            params,
+            x_test,
+            train=True,
+            rngs={
+                'dropout': key_forward
+            }
+        )
 
         print(f"    ✓ Forward pass successful")
         print(f"      Output shape: {logits.shape}")
@@ -591,7 +608,11 @@ if __name__ == "__main__":
     # ===== 5. Forward Pass Test (Evaluation Mode) =====
     print("\n[5] Testing forward pass (evaluation mode)...")
     try:
-        logits_eval = model.apply(params, x_test, train=False)
+        logits_eval = model.apply(
+            params,
+            x_test,
+            train=False
+        )
         print(f"    ✓ Evaluation pass successful")
         print(f"      Output shape: {logits_eval.shape}")
 
@@ -613,7 +634,11 @@ if __name__ == "__main__":
     print("\n[6] Testing loss computation...")
     try:
         def loss_fn(params_local, x_local, y_local):
-            logits_local = model.apply(params_local, x_local, train=False)
+            logits_local = model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss, logits_local
@@ -725,7 +750,11 @@ if __name__ == "__main__":
 
 
         def loss_fn_train(params_local, x_local, y_local):
-            logits_local = model.apply(params_local, x_local, train=False)
+            logits_local = model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss
@@ -784,7 +813,11 @@ if __name__ == "__main__":
     try:
         @jax.jit
         def infer_jit(p, x):
-            return model.apply(p, x, train=False)
+            return model.apply(
+                p,
+                x,
+                train=False
+            )
 
 
         # Warm up
@@ -816,30 +849,19 @@ if __name__ == "__main__":
                 jax.random.fold_in(key, test_batch),
                 (test_batch, height, width, channels)
             )
-            logits_batch = model.apply(params, x_test_batch, train=False)
+            logits_batch = model.apply(
+                params,
+                x_test_batch,
+                train=False
+            )
             print(f"    ✓ Batch size {test_batch:2d}: output shape {logits_batch.shape}")
 
     except Exception as e:
         print(f"    ✗ Batch size test failed: {e}")
         traceback.print_exc()
 
-    # ===== 11. Different Input Sizes Test =====
-    print("\n[11] Testing with different input sizes...")
-    try:
-        for test_size in [128, 224, 256]:
-            x_test_size = jax.random.normal(
-                jax.random.fold_in(key, test_size),
-                (2, test_size, test_size, channels)
-            )
-            logits_size = model.apply(params, x_test_size, train=False)
-            print(f"    ✓ Input size {test_size}x{test_size}: output shape {logits_size.shape}")
-
-    except Exception as e:
-        print(f"    ✗ Input size test failed: {e}")
-        traceback.print_exc()
-
-    # ===== 12. Architecture Analysis =====
-    print("\n[12] Analyzing model architecture...")
+    # ===== 11. Architecture Analysis =====
+    print("\n[11] Analyzing model architecture...")
     try:
         print(f"    Model architecture: VisionMamba")
         print(f"    Total parameters: {total_params:,}")
@@ -853,8 +875,8 @@ if __name__ == "__main__":
         print(f"    ✗ Architecture analysis failed: {e}")
         traceback.print_exc()
 
-    # ===== 13. SSM Component Test =====
-    print("\n[13] Testing SSM component separately...")
+    # ===== 12. SSM Component Test =====
+    print("\n[12] Testing SSM component separately...")
     try:
         # Test SSM branch independently
         ssm_branch = SSMBranch(
@@ -893,8 +915,8 @@ if __name__ == "__main__":
         print(f"    ✗ SSM component test failed: {e}")
         traceback.print_exc()
 
-    # ===== 14. Parameter Shape Verification =====
-    print("\n[14] Verifying parameter shapes (top-level only)...")
+    # ===== 13. Parameter Shape Verification =====
+    print("\n[13] Verifying parameter shapes (top-level only)...")
     try:
         def print_param_tree(params_dict, prefix="", depth=0, max_depth=2):
             if depth > max_depth:

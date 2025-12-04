@@ -93,6 +93,7 @@ class ResNet18(flax.linen.Module):
     GlobalAvgPool -> FullyConnected(num_classes)
     """
     num_classes: int = 2  # Number of output classes  输出类别数
+    dropout_rate: Optional[float] = None  # Dropout rate (if any)  dropout 率（如果有的话）
 
     @flax.linen.compact
     def __call__(
@@ -150,6 +151,13 @@ class ResNet18(flax.linen.Module):
         # Global average pooling  全局平均池化
         x = jax.numpy.mean(x, axis=(1, 2))
 
+        # Dropout layer (if specified)  dropout 层（如果指定）
+        if self.dropout_rate is not None and self.dropout_rate > 0.0 and train:
+            x = flax.linen.Dropout(
+                rate=self.dropout_rate,
+                deterministic=not train
+            )(x)
+
         # Fully connected layer  全连接层
         y = flax.linen.Dense(
             features=self.num_classes
@@ -167,6 +175,7 @@ class ResNet34(flax.linen.Module):
     GlobalAvgPool -> FullyConnected(num_classes)
     """
     num_classes: int = 2  # Number of output classes  输出类别数
+    dropout_rate: Optional[float] = None  # Dropout rate (if any)  dropout 率（如果有的话）
 
     @flax.linen.compact
     def __call__(
@@ -223,6 +232,13 @@ class ResNet34(flax.linen.Module):
 
         # Global average pooling  全局平均池化
         x = jax.numpy.mean(x, axis=(1, 2))
+
+        # Dropout layer (if specified)  dropout 层（如果指定）
+        if self.dropout_rate is not None and self.dropout_rate > 0.0 and train:
+            x = flax.linen.Dropout(
+                rate=self.dropout_rate,
+                deterministic=not train
+            )(x)
 
         # Fully connected layer  全连接层
         y = flax.linen.Dense(
@@ -320,7 +336,15 @@ if __name__ == "__main__":
         key_forward = jax.random.fold_in(key, 1)
         x_test = jax.random.normal(key_forward, (batch_size, height, width, channels))
 
-        logits18 = resnet18_model.apply(params18, x_test, train=True, mutable=['batch_stats'])[0]
+        logits18 = resnet18_model.apply(
+            params18,
+            x_test,
+            train=True,
+            mutable=['batch_stats'],
+            rngs={
+                'dropout': key_forward,
+            }
+        )[0]
 
         print(f"    ✓ Forward pass successful")
         print(f"      Output shape: {logits18.shape}")
@@ -355,7 +379,11 @@ if __name__ == "__main__":
     # ===== 5. Forward Pass Test (ResNet18 - Evaluation Mode) =====
     print("\n[5] Testing ResNet18 forward pass (evaluation mode)...")
     try:
-        logits18_eval = resnet18_model.apply(params18, x_test, train=False)
+        logits18_eval = resnet18_model.apply(
+            params18,
+            x_test,
+            train=False
+        )
         print(f"    ✓ Evaluation pass successful")
         print(f"      Output shape: {logits18_eval.shape}")
 
@@ -376,7 +404,15 @@ if __name__ == "__main__":
     # ===== 6. Forward Pass Test (ResNet34 - Training Mode) =====
     print("\n[6] Testing ResNet34 forward pass (training mode)...")
     try:
-        logits34 = resnet34_model.apply(params34, x_test, train=True, mutable=['batch_stats'])[0]
+        logits34 = resnet34_model.apply(
+            params34,
+            x_test,
+            train=True,
+            mutable=['batch_stats'],
+            rngs={
+                'dropout': key_forward,
+            }
+        )[0]
 
         print(f"    ✓ Forward pass successful")
         print(f"      Output shape: {logits34.shape}")
@@ -406,7 +442,11 @@ if __name__ == "__main__":
     # ===== 7. Forward Pass Test (ResNet34 - Evaluation Mode) =====
     print("\n[7] Testing ResNet34 forward pass (evaluation mode)...")
     try:
-        logits34_eval = resnet34_model.apply(params34, x_test, train=False)
+        logits34_eval = resnet34_model.apply(
+            params34,
+            x_test,
+            train=False
+        )
         print(f"    ✓ Evaluation pass successful")
         print(f"      Output shape: {logits34_eval.shape}")
 
@@ -509,7 +549,11 @@ if __name__ == "__main__":
 
 
         def loss_fn_train(params_local, x_local, y_local):
-            logits_local = resnet18_model.apply(params_local, x_local, train=False)
+            logits_local = resnet18_model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss
@@ -570,7 +614,11 @@ if __name__ == "__main__":
 
 
         def loss_fn_train34(params_local, x_local, y_local):
-            logits_local = resnet34_model.apply(params_local, x_local, train=False)
+            logits_local = resnet34_model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss
@@ -625,12 +673,20 @@ if __name__ == "__main__":
     try:
         @jax.jit
         def infer_jit18(p, x):
-            return resnet18_model.apply(p, x, train=False)
+            return resnet18_model.apply(
+                p,
+                x,
+                train=False
+            )
 
 
         @jax.jit
         def infer_jit34(p, x):
-            return resnet34_model.apply(p, x, train=False)
+            return resnet34_model.apply(
+                p,
+                x,
+                train=False
+            )
 
 
         # Warm up
@@ -672,8 +728,16 @@ if __name__ == "__main__":
                 jax.random.fold_in(key, test_batch),
                 (test_batch, height, width, channels)
             )
-            logits_batch18 = resnet18_model.apply(params18, x_test_batch, train=False)
-            logits_batch34 = resnet34_model.apply(params34, x_test_batch, train=False)
+            logits_batch18 = resnet18_model.apply(
+                params18,
+                x_test_batch,
+                train=False
+            )
+            logits_batch34 = resnet34_model.apply(
+                params34,
+                x_test_batch,
+                train=False
+            )
             print(f"    ✓ Batch size {test_batch:2d}: ResNet18 {logits_batch18.shape}, ResNet34 {logits_batch34.shape}")
 
     except Exception as e:

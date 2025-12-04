@@ -11,6 +11,7 @@ class BaselineCNN(nn.Module):
     [Conv -> GroupNorm -> ReLU -> MaxPool] x 4 -> FC(256) -> FC(128) -> FC(num_classes)
     """
     num_classes: int = 9  # 和 jax4max 里的 HYPERPARAMS["num_classes"] 一致
+    dropout_rate: float = 0.2  # Dropout 概率
 
     @nn.compact
     def __call__(self, x, train: bool = True):
@@ -44,9 +45,15 @@ class BaselineCNN(nn.Module):
         # 展平
         x = x.reshape((x.shape[0], -1))
 
-        # 全连接部分：256 -> 128 -> num_classes
+        # 全连接部分：256 -> Dropout -> 128 -> num_classes
         x = nn.Dense(256)(x)
         x = nn.relu(x)
+
+        if self.dropout_rate is not None and self.dropout_rate > 0.0 and train:
+            x = nn.Dropout(
+                rate=self.dropout_rate,
+                deterministic=not train,
+            )(x)
 
         x = nn.Dense(128)(x)
         x = nn.relu(x)
@@ -81,9 +88,12 @@ if __name__ == "__main__":
     print(f"    Output classes: {num_classes}")
 
     # ===== 2. Create Model =====
-    print("\n[2] Creating SimpleCNN model...")
+    print("\n[2] Creating BaselineCNN model...")
     try:
-        model = BaselineCNN(num_classes=num_classes)
+        model = BaselineCNN(
+            num_classes=num_classes,
+            dropout_rate=0.2,
+        )
         print("    ✓ Model created")
     except Exception as e:
         print(f"    ✗ Failed to create model: {e}")
@@ -97,7 +107,10 @@ if __name__ == "__main__":
         x_dummy = jax.random.normal(key_init, (batch_size, height, width, channels))
 
         params = model.init(
-            {'params': key_init, 'dropout': key_init},
+            {
+                'params': key_init,
+                'dropout': key_init
+            },
             x_dummy,
             train=True,
         )
@@ -135,6 +148,9 @@ if __name__ == "__main__":
             x_test,
             train=True,
             mutable=['batch_stats'],
+            rngs={
+                'dropout': key_forward
+            }
         )[0]
 
         print(f"    ✓ Forward pass successful")
@@ -170,7 +186,11 @@ if __name__ == "__main__":
     # ===== 5. Forward Pass Test (Evaluation Mode) =====
     print("\n[5] Testing forward pass (evaluation mode)...")
     try:
-        logits_eval = model.apply(params, x_test, train=False)
+        logits_eval = model.apply(
+            params,
+            x_test,
+            train=False
+        )
         print(f"    ✓ Evaluation pass successful")
         print(f"      Output shape: {logits_eval.shape}")
 
@@ -192,7 +212,11 @@ if __name__ == "__main__":
     print("\n[6] Testing loss computation...")
     try:
         def loss_fn(params_local, x_local, y_local):
-            logits_local = model.apply(params_local, x_local, train=False)
+            logits_local = model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss, logits_local
@@ -285,7 +309,11 @@ if __name__ == "__main__":
 
 
         def loss_fn_train(params_local, x_local, y_local):
-            logits_local = model.apply(params_local, x_local, train=False)
+            logits_local = model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jax.numpy.mean(jax.numpy.sum(y_local * log_softmax, axis=-1))
             return loss
@@ -340,7 +368,11 @@ if __name__ == "__main__":
     try:
         @jax.jit
         def infer_jit(p, x):
-            return model.apply(p, x, train=False)
+            return model.apply(
+                p,
+                x,
+                train=False
+            )
 
 
         # Warm up
@@ -372,7 +404,11 @@ if __name__ == "__main__":
                 jax.random.fold_in(key, test_batch),
                 (test_batch, height, width, channels)
             )
-            logits_batch = model.apply(params, x_test_batch, train=False)
+            logits_batch = model.apply(
+                params,
+                x_test_batch,
+                train=False
+            )
             print(f"    ✓ Batch size {test_batch:2d}: output shape {logits_batch.shape}")
 
     except Exception as e:
@@ -425,7 +461,11 @@ if __name__ == "__main__":
         # Create a model variant that returns intermediate outputs
         def get_intermediate_outputs(params_local, x_local):
             """Extract activation statistics at different layers"""
-            logits = model.apply(params_local, x_local, train=False)
+            logits = model.apply(
+                params_local,
+                x_local,
+                train=False
+            )
 
             # Return logits statistics
             logits_np = np.array(logits)
@@ -451,6 +491,6 @@ if __name__ == "__main__":
     print("TEST SUMMARY")
     print("=" * 80)
     print("✓ All critical tests passed!")
-    print("✓ SimpleCNN model is ready for training")
+    print("✓ BaselineCNN model is ready for training")
     print(f"✓ Model has {total_params:,} trainable parameters")
     print("=" * 80)

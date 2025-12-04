@@ -124,6 +124,7 @@ class VisionMamba(nn.Module):
     num_layers: int = 6
     d_model: int = 128
     d_state: int = 32
+    dropout_rate: float = 0.2
 
     def setup(self):
         # Patch embedding
@@ -137,6 +138,9 @@ class VisionMamba(nn.Module):
             MambaBlock(d_model=self.d_model, d_state=self.d_state, name=f'mamba_block_{i}')
             for i in range(self.num_layers)
         ]
+
+        # Dropout
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
 
         # Classification head
         self.head = nn.Dense(self.num_classes, name='head')
@@ -176,6 +180,10 @@ class VisionMamba(nn.Module):
 
         # Global average pooling
         x = jnp.mean(x, axis=1)  # (B, d_model)
+
+        # Dropout
+        if self.dropout_rate is not None and self.dropout_rate > 0.0 and train:
+            x = self.dropout(x, deterministic=not train)
 
         # Classification head
         x = self.head(x)  # (B, num_classes)
@@ -263,7 +271,14 @@ if __name__ == "__main__":
         key_forward = jax.random.fold_in(key, 1)
         x_test = jax.random.normal(key_forward, (batch_size, height, width, channels))
 
-        logits = model.apply(params, x_test, train=True)
+        logits = model.apply(
+            params,
+            x_test,
+            train=True,
+            rngs={
+                'dropout': key_forward
+            }
+        )
 
         print(f"    ✓ Forward pass successful")
         print(f"      Output shape: {logits.shape}")
@@ -299,7 +314,14 @@ if __name__ == "__main__":
     try:
         def loss_fn(params_local, x_local):
             y_dummy = jax.nn.one_hot(jnp.array([0, 1, 2, 3, 0])[:batch_size], num_classes)
-            logits_local = model.apply(params_local, x_local, train=True)
+            logits_local = model.apply(
+                params_local,
+                x_local,
+                train=True,
+                rngs={
+                    'dropout': key_forward
+                }
+            )
             log_softmax = jax.nn.log_softmax(logits_local, axis=-1)
             loss = -jnp.mean(jnp.sum(y_dummy * log_softmax, axis=-1))
             return loss
