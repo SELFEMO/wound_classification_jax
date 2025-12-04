@@ -1,5 +1,7 @@
 cd scripts/
 
+##### Default #####
+
 python train.py --model cnn
 python test.py --model cnn
 
@@ -18,20 +20,22 @@ python test.py --model baseline_cnn
 python train.py --model vision_mamba
 python test.py --model vision_mamba
 
-python train.py --model cnn  --dropout_rate 0.2
-python test.py --model cnn
+##### With Dropout #####
 
-python train.py --model mamba  --dropout_rate 0.2
+python train.py --model mamba  --dropout_rate 0.5
 python test.py --model mamba
 
-python train.py --model resnet18  --dropout_rate 0.2
+python train.py --model cnn  --dropout_rate 0.5
+python test.py --model cnn
+
+python train.py --model resnet18  --dropout_rate 0.5
 python test.py --model resnet18
 
-# python train.py --model resnet34  --dropout_rate 0.2
+# python train.py --model resnet34  --dropout_rate 0.5
 # python test.py --model resnet34
 
-python train.py --model baseline_cnn  --dropout_rate 0.2
+python train.py --model baseline_cnn  --dropout_rate 0.5
 python test.py --model baseline_cnn
 
-python train.py --model vision_mamba  --dropout_rate 0.2
+python train.py --model vision_mamba  --dropout_rate 0.5
 python test.py --model vision_mamba

@@ -694,7 +694,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=6,
                         help="Random seed for reproducibility")
     # Mamba.VisionMamba specific arguments  Mamba.VisionMamba 特定参数
-    parser.add_argument("--mamba_patch_size", type=int, default=16,
+    parser.add_argument("--mamba_patch_size", type=int, default=32,
                         help="Patch size for VisionMamba")
     parser.add_argument("--mamba_embed_dim", type=int, default=256,
                         help="Embedding dimension for VisionMamba")

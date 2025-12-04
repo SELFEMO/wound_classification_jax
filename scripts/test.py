@@ -225,7 +225,7 @@ from scripts.train import create_model
 if __name__ == "__main__":
     # Parse command-line arguments  解析命令行参数
     parser = argparse.ArgumentParser()  # Argument parser  参数解析器
-    parser.add_argument("--model", type=str, default="cnn",
+    parser.add_argument("--model", type=str, default="mamba",
                         choices=[
                             "cnn", "resnet18", "resnet34", "mamba", "baseline_cnn", "vision_mamba"
                         ],
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=6,
                         help="Random seed for reproducibility")  # 用于可重复性的随机种子
     # Mamba.VisionMamba related parameters (must remain consistent with those used during training) Mamba.VisionMamba 相关参数（需要与训练时保持一致）
-    parser.add_argument("--mamba_patch_size", type=int, default=16,
+    parser.add_argument("--mamba_patch_size", type=int, default=32,
                         help="Patch size used in Mamba model")  # Mamba 模型中使用的 Patch 大小
     parser.add_argument("--mamba_embed_dim", type=int, default=256,
                         help="Embedding dimension used in Mamba model")  # Mamba 模型中使用的嵌入维度
