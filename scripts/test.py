@@ -227,7 +227,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()  # Argument parser  参数解析器
     parser.add_argument("--model", type=str, default="mamba",
                         choices=[
-                            "cnn", "resnet18", "resnet34", "mamba", "baseline_cnn", "vision_mamba"
+                            "cnn", 'resnet18', "resnet34", "mamba",
+                            "baseline_cnn", "vision_mamba",
+                            "hybrid_mamba_cnn", 'hybrid_mamba_resnet'
                         ],
                         help="Model architecture to use")  # 使用的模型架构
     parser.add_argument("--data_path", type=str,
