@@ -246,7 +246,7 @@ if __name__ == "__main__":
     # Mamba.VisionMamba related parameters (must remain consistent with those used during training) Mamba.VisionMamba 相关参数（需要与训练时保持一致）
     parser.add_argument("--mamba_patch_size", type=int, default=32,
                         help="Patch size used in Mamba model")  # Mamba 模型中使用的 Patch 大小
-    parser.add_argument("--mamba_embed_dim", type=int, default=256,
+    parser.add_argument("--mamba_embed_dim", type=int, default=128,
                         help="Embedding dimension used in Mamba model")  # Mamba 模型中使用的嵌入维度
     parser.add_argument("--mamba_use_class_token", type=bool, default=True,
                         help="Whether to use class token in Mamba model")  # Mamba 模型中是否使用类别标记
