@@ -7,11 +7,13 @@ python test.py --model cnn
 
 python train.py --model mamba
 python test.py --model mamba
+python train.py --model mamba --mamba_depth 6
+python test.py --model mamba --mamba_depth 6
 
-python train.py --model resnet18
+python train.py --model resnet18 --num_epochs 20
 python test.py --model resnet18
 
-# python train.py --model resnet34
+# python train.py --model resnet34 --num_epochs 20
 # python test.py --model resnet34
 
 python train.py --model baseline_cnn
@@ -28,10 +30,10 @@ python test.py --model mamba
 python train.py --model cnn  --dropout_rate 0.3
 python test.py --model cnn
 
-python train.py --model resnet18  --dropout_rate 0.3
+python train.py --model resnet18  --dropout_rate 0.3 --num_epochs 20
 python test.py --model resnet18
 
-# python train.py --model resnet34  --dropout_rate 0.3
+# python train.py --model resnet34  --dropout_rate 0.3 --num_epochs 20
 # python test.py --model resnet34
 
 python train.py --model baseline_cnn  --dropout_rate 0.3
@@ -47,16 +49,16 @@ python test.py --model hybrid_mamba_cnn --hybrid_fusion weighted_sum
 # python train.py --model hybrid_mamba_cnn --hybrid_fusion gated_sum
 # python test.py --model hybrid_mamba_cnn --hybrid_fusion gated_sum
 
-# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion concat_head
+# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion concat_head --num_epochs 20
 # python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion concat_head
-python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion weighted_sum
+python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion weighted_sum --num_epochs 20
 python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion weighted_sum
-# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion gated_sum
+# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion gated_sum --num_epochs 20
 # python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet18 --hybrid_fusion gated_sum
 
-# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion concat_head
+# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion concat_head --num_epochs 20
 # python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion concat_head
-python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion weighted_sum
+python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion weighted_sum --num_epochs 20
 python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion weighted_sum
-# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion gated_sum
+# python train.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion gated_sum --num_epochs 20
 # python test.py --model hybrid_mamba_resnet --hybrid_resnet_type resnet34 --hybrid_fusion gated_sum
