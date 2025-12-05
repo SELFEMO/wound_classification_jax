@@ -114,7 +114,7 @@ class HybridMambaResNet(nn.Module):
         if self.mamba_config is None:
             mamba_cfg = dict(
                 patch_size=16,
-                embed_dim=256,
+                embed_dim=128,
                 use_class_token=True,
                 depth=4,
                 conv_kernel_size=3,
