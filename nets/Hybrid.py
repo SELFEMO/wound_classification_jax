@@ -11,7 +11,7 @@ FusionType = Literal["concat_head", "weighted_sum", "gated_sum"]
 
 class HybridMambaCNN(nn.Module):
     num_classes: int
-    dropout_rate: float = 0.0
+    dropout_rate: Optional[float] = 0.0
 
     # 选择 CNN 结构（调用你现成的 SimpleCNN）
     cnn_dropout_rate: Optional[float] = None
@@ -78,7 +78,7 @@ class HybridMambaCNN(nn.Module):
             z = jax.numpy.concatenate([logits_mamba, logits_cnn], axis=-1)  # (B, 2C)
             h = nn.Dense(self.fusion_hidden)(z)
             h = nn.silu(h)
-            if self.dropout_rate > 0 and train:
+            if self.dropout_rate is not None and self.dropout_rate > 0 and train:
                 h = nn.Dropout(rate=self.dropout_rate)(
                     h, deterministic=not train
                 )
@@ -175,7 +175,7 @@ class HybridMambaResNet(nn.Module):
             z = jax.numpy.concatenate([logits_mamba, logits_resnet], axis=-1)
             h = nn.Dense(self.fusion_hidden)(z)
             h = nn.relu(h)
-            if self.dropout_rate > 0 and train:
+            if self.dropout_rate is not None and self.dropout_rate > 0 and train:
                 h = nn.Dropout(rate=self.dropout_rate)(
                     h, deterministic=not train
                 )
