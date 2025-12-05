@@ -269,6 +269,15 @@ if __name__ == "__main__":
                         help="Dimension of model in VisionMamba model")  # VisionMamba 模型中的模型维度
     parser.add_argument("--vision_mamba_d_state", type=int, default=32,
                         help="Dimension of state in VisionMamba model")  # VisionMamba 模型中的状态维度
+    # Hybrid Mamba + CNN/ResNet specific arguments  混合 Mamba + CNN 特定参数
+    parser.add_argument("--hybrid_fusion", type=str, default="concat_head",
+                        choices=["concat_head", "weighted_sum", "gated_sum"],
+                        help="Fusion method for Hybrid Mamba + CNN model")  # 混合 Mamba + CNN 模型的融合方法
+    parser.add_argument("--hybrid_fusion_hidden", type=int, default=256,
+                        help="Hidden dimension for fusion in Hybrid Mamba + CNN/ResNet model")  # 混合 Mamba + CNN/ResNet 模型中融合的隐藏维度
+    parser.add_argument("--hybrid_resnet_type", type=str, default="resnet18",
+                        choices=["resnet18", "resnet34"],
+                        help="ResNet type for Hybrid Mamba + ResNet model")  # 混合 Mamba + ResNet 模型的 ResNet 类型
     # Parse the arguments  解析参数
     args = parser.parse_args()
 
@@ -340,6 +349,37 @@ if __name__ == "__main__":
             'd_model': args.vision_mamba_d_model,
             'd_state': args.vision_mamba_d_state,
         }
+    elif args.model == "hybrid_mamba_cnn":
+        mamba_config = dict(
+            mamba_config={
+                'patch_size': args.mamba_patch_size,
+                'embed_dim': args.mamba_embed_dim,
+                'use_class_token': args.mamba_use_class_token,
+                'depth': args.mamba_depth,
+                'conv_kernel_size': args.mamba_conv_kernel_size,
+                'ssm_expend': args.mamba_ssm_expend,
+                'ssm_d_state': args.mamba_ssm_d_state,
+                'ssm_dt_rank': args.mamba_ssm_dt_rank,
+            },
+            fusion=args.hybrid_fusion,
+            fusion_hidden=args.hybrid_fusion_hidden,
+        )
+    elif args.model == "hybrid_mamba_resnet":
+        mamba_config = dict(
+            resnet_type=args.hybrid_resnet_type,
+            mamba_config={
+                'patch_size': args.mamba_patch_size,
+                'embed_dim': args.mamba_embed_dim,
+                'use_class_token': args.mamba_use_class_token,
+                'depth': args.mamba_depth,
+                'conv_kernel_size': args.mamba_conv_kernel_size,
+                'ssm_expend': args.mamba_ssm_expend,
+                'ssm_d_state': args.mamba_ssm_d_state,
+                'ssm_dt_rank': args.mamba_ssm_dt_rank,
+            },
+            fusion=args.hybrid_fusion,
+            fusion_hidden=args.hybrid_fusion_hidden,
+        )
     model = create_model(
         model_name=args.model,
         num_classes=num_classes,
