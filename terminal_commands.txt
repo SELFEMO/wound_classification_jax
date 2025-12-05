@@ -40,7 +40,7 @@ python test.py --model baseline_cnn
 python train.py --model vision_mamba  --dropout_rate 0.3
 python test.py --model vision_mamba
 
-python train.py --model hybrid_mamba_cnn  --dropout_rate 0.3  --hybrid_fusion concat_head
+python train.py --model hybrid_mamba_cnn  --hybrid_fusion concat_head
 python test.py --model hybrid_mamba_cnn
-python train.py --model hybrid_mamba_cnn  --dropout_rate 0.3  --hybrid_fusion gated_sum
+python train.py --model hybrid_mamba_cnn  --hybrid_fusion gated_sum
 python test.py --model hybrid_mamba_cnn
