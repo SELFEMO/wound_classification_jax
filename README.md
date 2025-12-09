@@ -37,18 +37,18 @@ WOUND_CLASSIFICATION_JAX
 ├─data
 │   └─dataset                 # Cleaned dataset (after processing)
 │
-├─nets                       # Model architectures
+├─nets                        # Model architectures
 │   └─ BaselineCNN.py
 │      CNN.py
 │      Hybrid.py
-│      Mamba.py
+│      Mamba.py               # The implementations of Vision Mamba and the VisionMamba.py file are different.
 │      ResNet.py
 │      VisionMamba.py
 │
 ├─references
 │   └─ Hatamizadeh_MambaVision_CVPR2025.pdf
 │
-└─scripts                    # Training / Testing / Data Processing
+└─scripts                     # Training / Testing / Data Processing
     └─ dataset.py
        data_clean.py
        download_data.py
