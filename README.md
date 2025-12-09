@@ -15,7 +15,7 @@ The system includes:
 * Full training and evaluation pipelines
 * Dataset cleaning, augmentation, splitting, and loading utilities
 
-本项目实现了 **基于 JAX / Flax 的伤口图像分类系统**，提供：
+本项目实现了一个 **基于 JAX / Flax 的伤口图像分类任务**，提供：
 
 * 传统 CNN 模型
 * ResNet18 / ResNet34
