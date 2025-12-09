@@ -1,5 +1,4 @@
-# **Wound Classification with JAX / Flax**
-### **使用 JAX / Flax 的创伤图像分类项目**
+# **Wound Classification with JAX / Flax | 使用 JAX / Flax 的创伤图像分类项目**
 
 ---
 
@@ -30,7 +29,7 @@ The system includes:
 
 ## **📁 Project Structure | 项目结构**
 
-```
+```text
 WOUND_CLASSIFICATION_JAX
 │  requirements.txt
 │  terminal_commands.txt
@@ -94,7 +93,7 @@ WOUND_CLASSIFICATION_JAX
 
 # **📦 Installation | 安装**
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -104,33 +103,33 @@ pip install -r requirements.txt
 
 ### **Download from Kaggle**
 
-```
+```bash
 python scripts/download_data.py
 ```
 
 ### **Clean dataset and remove corrupted images**
 
-```
+```bash
 python scripts/data_clean.py
 ```
 
 This creates:
 
-```
+```text
 data/dataset/
-000001_ClassA.jpg
-000002_ClassB.jpg
+    000001_ClassA.jpg
+    000002_ClassB.jpg
 ```
 
 ### **Split into train/test**
 
-```
+```bash
 python scripts/data_clean.py --build_split
 ```
 
 This generates:
 
-```
+```text
 data/dataset_split/train/
 data/dataset_split/test/
 ```
@@ -141,18 +140,18 @@ data/dataset_split/test/
 
 Example:
 
-```
+```bash
 python scripts/train.py \
-       --model mamba \
-               --batch_size 16 \
-                            --num_epochs 50 \
-                                         --learning_rate 5e-5 \
-                                                         --use_augmentation True
+    --model mamba \
+    --batch_size 16 \
+    --num_epochs 50 \
+    --learning_rate 5e-5 \
+    --use_augmentation True
 ```
 
 ### **Supported models (choose with `--model`)**
 
-```
+```text
 cnn
 baseline_cnn
 resnet18
@@ -169,17 +168,17 @@ hybrid_mamba_resnet
 
 Example:
 
-```
+```bash
 python scripts/test.py \
-       --model mamba \
-               --ckpt_path ../checkpoints/mamba/best.pkl
+    --model mamba \
+    --ckpt_path ../checkpoints/mamba/best.pkl
 ```
 
 Outputs:
 
-* Accuracy
-* Loss
-* Batch-wise prediction statistics
+* Accuracy (准确率)
+* Loss (损失值)
+* Batch-wise prediction statistics (批次预测统计)
 
 ---
 
@@ -233,11 +232,13 @@ img, label_idx, img_idx = loader[0]
 
 ```python
 from nets.CNN import SimpleCNN
-import jax.numpy as jnp
+import jax
+from scripts.dataset import data_loader
 
+loader = data_loader(data_path="../data/dataset", use_augmentation=False)
 model = SimpleCNN(num_classes=loader.num_classes)
-params = model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3)))
-logits = model.apply(params, jnp.zeros((1, 224, 224, 3)))
+params = model.init(jax.random.PRNGKey(0), jax.numpy.zeros((1, 224, 224, 3)))
+logits = model.apply(params, jax.numpy..zeros((1, 224, 224, 3)))
 ```
 
 ---
