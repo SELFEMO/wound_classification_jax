@@ -270,7 +270,7 @@ if __name__ == "__main__":
     parser.add_argument("--vision_mamba_d_state", type=int, default=32,
                         help="Dimension of state in VisionMamba model")  # VisionMamba 模型中的状态维度
     # Hybrid Mamba + CNN/ResNet specific arguments  混合 Mamba + CNN 特定参数
-    parser.add_argument("--hybrid_fusion", type=str, default="concat_head",
+    parser.add_argument("--hybrid_fusion", type=str, default="weighted_sum",
                         choices=["concat_head", "weighted_sum", "gated_sum"],
                         help="Fusion method for Hybrid Mamba + CNN model")  # 混合 Mamba + CNN 模型的融合方法
     parser.add_argument("--hybrid_fusion_hidden", type=int, default=256,

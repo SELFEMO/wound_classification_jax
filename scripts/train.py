@@ -785,7 +785,7 @@ if __name__ == "__main__":
     parser.add_argument("--vision_mamba_d_state", type=int, default=32,
                         help="SSM d_state in VisionMamba")
     # Hybrid Mamba + CNN/ResNet specific arguments  混合 Mamba + CNN 特定参数
-    parser.add_argument("--hybrid_fusion", type=str, default="concat_head",
+    parser.add_argument("--hybrid_fusion", type=str, default="weighted_sum",
                         choices=["concat_head", "weighted_sum", "gated_sum"],
                         help="Fusion method for Hybrid Mamba + CNN model")
     parser.add_argument("--hybrid_fusion_hidden", type=int, default=256,
